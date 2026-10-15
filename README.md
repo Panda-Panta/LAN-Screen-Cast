@@ -128,6 +128,8 @@ node node_modules\electron\install.js
 
 `scripts/system-audio-smoke.js` 在普通 Windows 会话中短暂播放低音量 440 Hz 测试音，通过原生输出回环和 WebRTC 接收频谱验证声音；混合测试只将麦克风输入替换为另一频率。接收测试窗口的本机输出静音，避免反馈；还验证独立音量、麦克风静音、停止释放及关闭后恢复。
 
+测试输出信号幅度已降低 100 倍，仅采样时播放，每段最多 15–20 秒自动静音；基础测试接收窗口也禁止本机播放。Release 1.0 本轮音频复验已停止，发布摘要明确记录未完成范围，当前验收与历史证据分开列在 [验证记录](docs/verification.md)。
+
 RTMP 使用随包 FFmpeg 与 MediaMTX，无需用户安装命令行工具。原生二进制、对应源码和许可证在 `vendor/media/`，通过 `scripts/fetch-media-dependencies.ps1` 准备，准确版本与校验值以 `manifest.json` 为准。
 
 发布验证先运行 `node scripts/validate.js`，生成与当前源码 / 测试指纹绑定的完整 Node 和语法日志。桌面脚本记录实际应用版本；打包目录记录 EXE / ASAR / 原生依赖哈希，单文件检查读取实际解出的资源。`scripts/package-release.py` 要求五类桌面检查在源码和打包目录分别通过，拒绝旧版本或其他候选的记录，再生成 ZIP 并校验 CRC / 哈希。RTMP 脚本实际经过原生窗口、Windows 声音回环、混合音轨、FFmpeg 编码、MediaMTX 分发与接收解码，并检查两协议共享人数及失败隔离。

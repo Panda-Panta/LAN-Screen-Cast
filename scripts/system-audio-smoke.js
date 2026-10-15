@@ -17,7 +17,8 @@ const packaged = !!process.env.LAN_CAST_EXECUTABLE;
 const profile = path.join(root, '.cache', `system-audio-${packaged ? 'packaged' : 'source'}-${Date.now()}-${process.pid}`);
 const settingsFile = path.join(profile, 'settings.json');
 const SYSTEM_HZ = 440, MIC_HZ = 880;
-const SYSTEM_GAIN = 0.03, MIC_GAIN = 0.04;
+const SYSTEM_GAIN = 0.0003, MIC_GAIN = 0.004;
+const OUTPUT_TONE_LIMIT_MS = 20000;
 const reportFile = path.join(resultDir, `${packaged ? 'packaged-' : ''}system-audio-smoke.json`);
 const execFileAsync = promisify(execFile);
 let currentStep = 'not started';
@@ -143,23 +144,63 @@ async function createToneFixture(application, errors) {
   progress('create and load actual Windows output fixture');
   const html = `<!doctype html><html><head><title>Windows system-audio output fixture</title></head>
     <body style="background:#1367c5;color:white;font:28px Segoe UI;padding:30px">
-    <p>Actual Windows output loopback fixture</p><p id="clock"></p><button id="tone-start">Start quiet ${SYSTEM_HZ} Hz output</button>
+    <p>Actual Windows output loopback fixture</p><p id="clock"></p><button id="tone-start">Prepare silent ${SYSTEM_HZ} Hz output</button>
     <script>
-    setInterval(() => { document.querySelector('#clock').textContent = Date.now(); document.body.style.background = 'hsl(' + Date.now()/40%360 + ',60%,30%)'; }, 40);
+    const clockTimer = setInterval(() => { document.querySelector('#clock').textContent = Date.now(); document.body.style.background = 'hsl(' + Date.now()/40%360 + ',60%,30%)'; }, 40);
     window.__outputTone = null;
     document.querySelector('#tone-start').addEventListener('click', async () => {
       if (window.__outputTone) return;
       const context = new AudioContext();
       const oscillator = context.createOscillator(); oscillator.frequency.value = ${SYSTEM_HZ};
-      const gain = context.createGain(); gain.gain.value = ${SYSTEM_GAIN};
+      const gain = context.createGain(); gain.gain.value = 0;
       oscillator.connect(gain); gain.connect(context.destination); oscillator.start();
-      window.__outputTone = { context, oscillator, gain, stopped: false };
-      await context.resume(); document.querySelector('#tone-start').textContent = 'Actual output tone running';
+      const tone = window.__outputTone = { context, oscillator, gain, stopped: false,
+        active: false, expired: false, timer: null, deadline: null, audioDeadline: null, episodes: [] };
+      const mute = reason => {
+        clearTimeout(tone.timer); tone.timer = null;
+        gain.gain.cancelScheduledValues(context.currentTime);
+        gain.gain.setValueAtTime(0, context.currentTime);
+        if (tone.active) Object.assign(tone.episodes.at(-1), { endedAt: Date.now(), reason });
+        tone.active = false; tone.deadline = null; tone.audioDeadline = null;
+      };
+      const checkDeadline = () => {
+        if (tone.active && (Date.now() >= tone.deadline || context.currentTime >= tone.audioDeadline)) {
+          tone.expired = true; mute('deadline');
+        }
+      };
+      window.__outputToneState = () => {
+        checkDeadline();
+        return { state: context.state, gain: gain.gain.value, time: context.currentTime,
+          active: tone.active, expired: tone.expired, timerCleared: tone.timer === null,
+          episodes: tone.episodes };
+      };
+      window.__setOutputToneGain = next => {
+        if (!Number.isFinite(next) || next < 0 || next > ${SYSTEM_GAIN}) throw new Error('Output fixture gain exceeds its quiet limit');
+        checkDeadline();
+        if (next === 0) { mute('measurement-complete'); return window.__outputToneState(); }
+        if (tone.stopped || tone.expired || context.state !== 'running') throw new Error('Output fixture is stopped or its playback deadline expired');
+        // An active lease cannot be extended by setting its gain again.
+        if (tone.active) throw new Error('Output fixture already has an active playback deadline');
+        const now = context.currentTime;
+        tone.active = true; tone.deadline = Date.now() + ${OUTPUT_TONE_LIMIT_MS};
+        tone.audioDeadline = now + ${OUTPUT_TONE_LIMIT_MS / 1000};
+        tone.episodes.push({ startedAt: Date.now(), endedAt: null, reason: null });
+        gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(next, now);
+        // Audio-thread scheduling silences output even if the renderer stalls.
+        gain.gain.setValueAtTime(0, tone.audioDeadline);
+        tone.timer = setTimeout(() => { tone.expired = true; mute('deadline'); }, ${OUTPUT_TONE_LIMIT_MS});
+        return window.__outputToneState();
+      };
+      window.__muteOutputTone = mute;
+      await context.resume(); document.querySelector('#tone-start').textContent = 'Output prepared; muted between measurements';
     });
     window.__stopOutputTone = async () => {
+      clearInterval(clockTimer);
       const tone = window.__outputTone;
       if (!tone || tone.stopped) return;
-      tone.stopped = true; tone.oscillator.stop(); await tone.context.close();
+      window.__muteOutputTone('stopped');
+      tone.stopped = true; tone.oscillator.stop();
+      if (tone.context.state !== 'closed') await tone.context.close();
     };
     </script></body></html>`;
   const ready = application.waitForEvent('window');
@@ -172,19 +213,25 @@ async function createToneFixture(application, errors) {
   }, `data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   const page = await ready;
   page.on('pageerror', error => errors.push({ page: 'output fixture', message: error.message }));
-  progress('start quiet actual Windows output tone');
+  progress('prepare actual Windows output tone, initially muted');
   await page.locator('#tone-start').click();
-  await eventually(() => page.evaluate(() => ({ state: window.__outputTone?.context.state,
-    gain: window.__outputTone?.gain.gain.value, time: window.__outputTone?.context.currentTime })),
-  value => value.state === 'running' && value.time > 0.1 && value.gain > 0, 'actual Windows output tone did not run');
+  await eventually(() => page.evaluate(() => window.__outputToneState?.()),
+    value => value?.state === 'running' && value.time > 0.1 && value.gain === 0 && !value.active && value.timerCleared,
+    'actual Windows output fixture was not prepared silently');
   return page;
 }
 
 async function setOutputGain(page, value) {
-  await page.evaluate(next => {
-    const tone = window.__outputTone;
-    tone.gain.gain.setValueAtTime(next, tone.context.currentTime);
-  }, value);
+  await page.evaluate(next => { window.__setOutputToneGain(next); }, value);
+  // Automation takes effect on an audio render quantum. Observe its applied
+  // value without rearming or extending the single playback deadline above.
+  await eventually(async () => {
+    const state = await page.evaluate(() => window.__outputToneState());
+    assert.equal(state.expired, false, 'actual Windows output fixture exceeded its playback deadline; it remains muted');
+    assert.equal(state.active, value > 0);
+    assert.equal(state.timerCleared, value === 0);
+    return state;
+  }, state => Math.abs(state.gain - value) < 1e-8, 'actual Windows output fixture gain did not update after an audio render quantum', 3000);
 }
 
 async function openViewer(application, invite, errors) {
@@ -276,13 +323,53 @@ const present = tone => tone?.amplitude > 0.0001 && tone.prominenceDb >= 8;
 const dropped = (tone, baseline) => tone.amplitude <= Math.max(0.00005, baseline.amplitude * 0.16);
 const retained = (tone, baseline) => present(tone) && tone.amplitude >= baseline.amplitude * 0.55;
 
-async function measure(page, predicate, label, previousSamples = 0) {
+async function measure(page, predicate, label, previousSamples = 0, outputFixture = null) {
   progress(`measure: ${label}`);
-  return eventually(() => audioSnapshot(page), snapshot => snapshot?.contextState === 'running'
-    && snapshot.audioSamples >= previousSamples + 4800 && snapshot.audioBytes > 2000
-    && snapshot.videoFrames >= 3 && snapshot.videoWidth > 0 && snapshot.remoteMuted
-    && snapshot.audioTracks.length === 1 && snapshot.audioTracks[0].readyState === 'live'
-    && predicate(snapshot), label, 30000, 3);
+  let lastSnapshot = null;
+  const assertOutputActive = async () => {
+    if (!outputFixture) return;
+    const state = await outputFixture.evaluate(() => window.__outputToneState());
+    assert.equal(state.expired, false, 'actual Windows output fixture exceeded its playback deadline; it remains muted');
+    assert.equal(state.active, true, 'actual Windows output fixture stopped before its measurement completed');
+  };
+  try {
+    return await eventually(async () => {
+      await assertOutputActive();
+      const snapshot = await audioSnapshot(page);
+      if (snapshot) lastSnapshot = snapshot;
+      await assertOutputActive();
+      return snapshot;
+    }, snapshot => snapshot?.contextState === 'running'
+      && snapshot.audioSamples >= previousSamples + 4800 && snapshot.audioBytes > 2000
+      && snapshot.videoFrames >= 3 && snapshot.videoWidth > 0 && snapshot.remoteMuted
+      && snapshot.audioTracks.length === 1 && snapshot.audioTracks[0].readyState === 'live'
+      && predicate(snapshot), label, 30000, 3);
+  } catch (error) {
+    error.audioMeasurement = { label, lastSnapshot };
+    throw error;
+  }
+}
+
+async function measureWithOutput(tonePage, page, predicate, label, previousSamples = 0) {
+  let measurementError, lastSnapshot = null;
+  try {
+    await setOutputGain(tonePage, SYSTEM_GAIN);
+    lastSnapshot = await measure(page, predicate, label, previousSamples, tonePage);
+    return lastSnapshot;
+  } catch (error) {
+    measurementError = error;
+    error.audioMeasurement ||= { label, lastSnapshot: null };
+    throw error;
+  } finally {
+    try { await setOutputGain(tonePage, 0); }
+    catch (error) {
+      if (!measurementError) {
+        error.audioMeasurement ||= { label, lastSnapshot };
+        throw error;
+      }
+      measurementError.outputMuteError = error.stack;
+    }
+  }
 }
 
 async function start(host, stage) {
@@ -350,7 +437,8 @@ async function main() {
   await fs.mkdir(resultDir, { recursive: true });
   const report = { startedAt: new Date().toISOString(), passed: false, checks: [],
     scope: 'same-PC production Electron screen/window capture, real Windows output loopback, real WebRTC/Opus decode and frequency analysis; microphone-only input fixture in mixed scenario',
-    fixtures: { system: { hz: SYSTEM_HZ, gain: SYSTEM_GAIN, output: 'native AudioContext.destination, not a synthetic display audio track' },
+    fixtures: { system: { hz: SYSTEM_HZ, gain: SYSTEM_GAIN, initiallyMuted: true, maxPlaybackMs: OUTPUT_TONE_LIMIT_MS,
+      output: 'native AudioContext.destination, not a synthetic display audio track' },
       microphone: { hz: MIC_HZ, gain: MIC_GAIN, boundary: 'getUserMedia audio-only' }, receiverLocalOutputMuted: true },
     measurements: {} };
   const errors = [];
@@ -380,22 +468,21 @@ async function main() {
     assert.equal(report.windowCapture.previewAudioCount, 1);
     assert.ok(report.windowCapture.rawDisplay.some(track => track.kind === 'audio' && track.readyState === 'live'), 'native display result must contain real loopback audio');
     const windowViewer = await openViewer(application, await host.locator('#invite-link').inputValue(), errors);
-    const first = report.measurements.windowSystem = await measure(windowViewer.page, value => present(value.system) && value.rms > 0.0001,
+    const first = report.measurements.windowSystem = await measureWithOutput(tonePage, windowViewer.page, value => present(value.system) && value.rms > 0.0001,
       'real Windows output frequency did not reach the window-capture receiver (check the active Windows output device / output mute)');
     check('selected-window capture includes actual Windows output loopback; receiver decodes samples and detects 440 Hz');
     await setOutputGain(tonePage, 0);
     const outputOff = report.measurements.outputFixtureOff = await measure(windowViewer.page, value => dropped(value.system, first.system),
       'muting the actual Windows output fixture did not remove its received frequency', first.audioSamples);
-    await setOutputGain(tonePage, SYSTEM_GAIN);
-    const restored = report.measurements.outputFixtureRestored = await measure(windowViewer.page, value => retained(value.system, first.system),
+    const restored = report.measurements.outputFixtureRestored = await measureWithOutput(tonePage, windowViewer.page, value => retained(value.system, first.system),
       'restoring the actual Windows output fixture did not restore its received frequency', outputOff.audioSamples);
     check('receiver frequency follows the actual output fixture off/on, proving the loopback signal path');
     await setSlider(host, 'system-volume', 50);
-    const half = report.measurements.windowSystemHalfVolume = await measure(windowViewer.page,
+    const half = report.measurements.windowSystemHalfVolume = await measureWithOutput(tonePage, windowViewer.page,
       value => present(value.system) && value.system.amplitude < restored.system.amplitude * 0.8 && value.system.amplitude > restored.system.amplitude * 0.2,
       'system 50% slider did not reduce received tone amplitude', restored.audioSamples);
     await setSlider(host, 'system-volume', 100);
-    await measure(windowViewer.page, value => retained(value.system, first.system), 'system volume restore failed', half.audioSamples);
+    await measureWithOutput(tonePage, windowViewer.page, value => retained(value.system, first.system), 'system volume restore failed', half.audioSamples);
     report.windowCleanup = await stopAndCheck(host, windowViewer, 'window-system-only');
     await application.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)?.close(), windowViewer.id);
     check('system volume updates live; stopping releases native display, mixed audio and AudioContext');
@@ -412,41 +499,48 @@ async function main() {
     assert.equal(report.screenMixedCapture.previewAudioCount, 1, 'two inputs must produce one sent audio track');
     assert.ok(report.screenMixedCapture.rawDisplay.some(track => track.kind === 'audio' && track.readyState === 'live'));
     const mixedViewer = await openViewer(application, await host.locator('#invite-link').inputValue(), errors);
-    const mixed = report.measurements.mixedBoth = await measure(mixedViewer.page,
+    const mixed = report.measurements.mixedBoth = await measureWithOutput(tonePage, mixedViewer.page,
       value => present(value.system) && present(value.microphone), 'both loopback and microphone frequencies were not decoded');
     check('full-screen capture mixes real system output and the distinct microphone input into one WebRTC audio track');
     await setSlider(host, 'system-volume', 0);
-    const systemZero = report.measurements.mixedSystemZero = await measure(mixedViewer.page,
+    const systemZero = report.measurements.mixedSystemZero = await measureWithOutput(tonePage, mixedViewer.page,
       value => dropped(value.system, mixed.system) && retained(value.microphone, mixed.microphone),
       'system 0% must remove only 440 Hz while preserving microphone 880 Hz', mixed.audioSamples);
     await setSlider(host, 'system-volume', 100);
-    const bothAgain = report.measurements.mixedSystemRestored = await measure(mixedViewer.page,
+    const bothAgain = report.measurements.mixedSystemRestored = await measureWithOutput(tonePage, mixedViewer.page,
       value => retained(value.system, mixed.system) && retained(value.microphone, mixed.microphone),
       'system gain restore did not recover both inputs', systemZero.audioSamples);
     await setSlider(host, 'mic-volume', 50);
-    const micHalf = report.measurements.mixedMicrophoneHalfVolume = await measure(mixedViewer.page,
+    const micHalf = report.measurements.mixedMicrophoneHalfVolume = await measureWithOutput(tonePage, mixedViewer.page,
       value => retained(value.system, mixed.system) && present(value.microphone)
         && value.microphone.amplitude < bothAgain.microphone.amplitude * 0.8 && value.microphone.amplitude > bothAgain.microphone.amplitude * 0.2,
       'microphone 50% must reduce only its own frequency', bothAgain.audioSamples);
     await setSlider(host, 'mic-volume', 100);
-    const preMute = await measure(mixedViewer.page, value => retained(value.system, mixed.system) && retained(value.microphone, mixed.microphone),
+    const preMute = await measureWithOutput(tonePage, mixedViewer.page, value => retained(value.system, mixed.system) && retained(value.microphone, mixed.microphone),
       'microphone volume restore failed', micHalf.audioSamples);
     await host.locator('#mute').click();
-    const micMuted = report.measurements.mixedMicrophoneMuted = await measure(mixedViewer.page,
+    const micMuted = report.measurements.mixedMicrophoneMuted = await measureWithOutput(tonePage, mixedViewer.page,
       value => retained(value.system, mixed.system) && dropped(value.microphone, mixed.microphone),
       'microphone mute must leave system output audible', preMute.audioSamples);
     assert.equal(await host.evaluate(() => document.querySelector('#preview').srcObject.getAudioTracks()[0].enabled), true,
       'microphone mute must not disable the mixed system audio track');
     await host.locator('#mute').click();
-    report.measurements.mixedUnmuted = await measure(mixedViewer.page,
+    report.measurements.mixedUnmuted = await measureWithOutput(tonePage, mixedViewer.page,
       value => retained(value.system, mixed.system) && retained(value.microphone, mixed.microphone),
       'unmute did not restore both decoded inputs', micMuted.audioSamples);
     report.mixedCleanup = await stopAndCheck(host, mixedViewer, 'screen-mixed');
     check('independent system/microphone gains and microphone mute preserve the other input; mixed capture releases all owned tracks/contexts');
 
     await tonePage.evaluate(async () => { await window.__stopOutputTone(); });
+    report.outputFixtureSafety = await tonePage.evaluate(() => window.__outputToneState());
     report.outputFixtureClosed = await tonePage.evaluate(() => window.__outputTone.context.state === 'closed');
     assert.equal(report.outputFixtureClosed, true);
+    assert.equal(report.outputFixtureSafety.gain, 0);
+    assert.equal(report.outputFixtureSafety.active, false);
+    assert.equal(report.outputFixtureSafety.expired, false);
+    assert.equal(report.outputFixtureSafety.timerCleared, true);
+    assert.ok(report.outputFixtureSafety.episodes.every(episode => episode.endedAt !== null && episode.reason === 'measurement-complete'),
+      'every playback phase must finish and mute before its deadline');
     await closeOwnedFixtures(application);
     await host.evaluate(() => { window.__systemAcceptance.restore(); });
     await setSlider(host, 'system-volume', 37);
@@ -469,6 +563,8 @@ async function main() {
     report.passed = true;
   } catch (error) {
     report.error = error.stack; report.failureStage = currentStep; report.pageErrors = errors;
+    if (error.audioMeasurement) report.failedMeasurement = error.audioMeasurement;
+    if (error.outputMuteError) report.outputMuteError = error.outputMuteError;
     process.exitCode = 1; console.error(error);
     // Persist the failing run before attempting diagnostics or cleanup. Even a
     // crashed/unloaded renderer must not hide its original failure evidence.
@@ -478,7 +574,7 @@ async function main() {
       microphone: document.querySelector('#microphone-status')?.textContent,
       systemAudio: document.querySelector('#system-audio')?.checked,
       systemVolume: document.querySelector('#system-volume')?.value, micVolume: document.querySelector('#mic-volume')?.value,
-      sources: [...document.querySelectorAll('.source-card')].map(card => card.title),
+      sourceCount: document.querySelectorAll('.source-card').length,
       resources: window.__systemAcceptance ? {
         displayTracks: window.__systemAcceptance.displays.flatMap(value => value.tracks.map(track => ({ kind: track.kind, state: track.readyState }))),
         contexts: window.__systemAcceptance.contexts.map(value => ({ stage: value.stage, role: value.role, state: value.context.state }))

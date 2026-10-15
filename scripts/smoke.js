@@ -113,6 +113,8 @@ async function main() {
     const receiverReady = electron.waitForEvent('window');
     const receiver = await electron.evaluate(async ({ BrowserWindow }, inviteUrl) => {
       const win = new BrowserWindow({ width: 1100, height: 800, webPreferences: { partition: 'receiver-test', sandbox: true, nodeIntegration: false, contextIsolation: true } });
+      // Decode the real incoming stream without playing test audio locally.
+      win.webContents.setAudioMuted(true);
       globalThis.__smokeWindows = [win];
       await win.loadURL(inviteUrl);
       return win.id;
@@ -141,6 +143,7 @@ async function main() {
     const secondReady = electron.waitForEvent('window');
     const secondId = await electron.evaluate(async ({ BrowserWindow }, url) => {
       const win = new BrowserWindow({ width: 850, height: 700, webPreferences: { partition: 'receiver-second', sandbox: true } });
+      win.webContents.setAudioMuted(true);
       globalThis.__smokeWindows.push(win);
       await win.loadURL(url);
       return win.id;
@@ -159,6 +162,7 @@ async function main() {
       const ready = electron.waitForEvent('window');
       await electron.evaluate(async ({ BrowserWindow }, { url, index }) => {
         const win = new BrowserWindow({ width: 800, height: 650, webPreferences: { partition: `receiver-${index}`, sandbox: true } });
+        win.webContents.setAudioMuted(true);
         globalThis.__smokeWindows.push(win); await win.loadURL(url);
       }, { url: invite, index });
       const page = await ready;
@@ -221,6 +225,8 @@ async function main() {
     await viewer.waitForFunction(() => document.querySelector('#connection-text').textContent === '正在观看', null, { timeout: 25000 });
     if (await viewer.locator('#enable-audio').isVisible()) await viewer.locator('#enable-audio').click();
     report.audio = await waitForDecodedAudioVideo(viewer);
+    report.receiverLocalOutputMuted = await electron.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id).webContents.isAudioMuted(), receiver);
+    assert.equal(report.receiverLocalOutputMuted, true);
     report.hostCandidates = await host.evaluate(() => window.__hostCandidates.map(c => c.candidate));
     assert.ok(report.audio.audioSamples > 0);
     await host.locator('#mute').click();

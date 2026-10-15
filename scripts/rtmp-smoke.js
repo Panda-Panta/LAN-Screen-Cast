@@ -28,7 +28,10 @@ const resultDir = path.join(root, 'test-results');
 const reportFile = path.join(resultDir, `${packaged ? 'packaged-' : ''}rtmp-smoke.json`);
 const settingsFile = path.join(profile, 'settings.json');
 const execFileAsync = promisify(execFile);
-const SYSTEM_HZ = 440, MIC_HZ = 880, SYSTEM_GAIN = 0.03, MIC_GAIN = 0.04;
+const SYSTEM_HZ = 440, MIC_HZ = 880, SYSTEM_GAIN = 0.0003, MIC_GAIN = 0.04;
+// Keep real Windows loopback coverage without a continuous audible fixture.
+// AudioParam automation enforces the limit even if the test runner stalls.
+const OUTPUT_WINDOW_MS = 15000;
 const SAMPLE_RATE = 48000, WINDOW_SAMPLES = SAMPLE_RATE;
 const decoders = new Set();
 let currentStep = 'not started';
@@ -102,13 +105,33 @@ async function released(port) {
     `owned TCP listener ${port} remained open`, 15000, 2);
 }
 
-async function processSnapshot(ownedPids = []) {
-  assert.ok(ownedPids.every(pid => Number.isSafeInteger(pid) && pid > 0));
+function processIdentity(row) {
+  assert.ok(Number.isSafeInteger(row.ProcessId) && row.ProcessId > 0, 'native process has no valid PID');
+  assert.ok(typeof row.CreationTime === 'string' && row.CreationTime.length > 0, 'native process creation time is unavailable');
+  assert.ok(typeof row.ExecutablePath === 'string' && row.ExecutablePath.length > 0, 'native process executable path is unavailable');
+  return { pid: row.ProcessId, name: row.Name.toLowerCase(), executablePath: path.normalize(row.ExecutablePath),
+    creationTime: row.CreationTime };
+}
+
+function sameProcess(row, identity) {
+  return row.ProcessId === identity.pid && row.CreationTime === identity.creationTime
+    && typeof row.Name === 'string' && row.Name.toLowerCase() === identity.name
+    && typeof row.ExecutablePath === 'string'
+    && path.normalize(row.ExecutablePath).toLowerCase() === identity.executablePath.toLowerCase();
+}
+
+async function processSnapshot(owned = []) {
+  assert.ok(owned.every(row => Number.isSafeInteger(row.pid) && row.pid > 0
+    && typeof row.creationTime === 'string' && typeof row.executablePath === 'string' && typeof row.name === 'string'));
   // Read command lines only for confirmed application-owned native children.
-  // The general tree inventory needs parent IDs, never unrelated credentials.
-  const command = ownedPids.length
-    ? `Get-CimInstance Win32_Process -Filter '${ownedPids.map(pid => `ProcessId = ${pid}`).join(' OR ')}' | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine | ConvertTo-Json -Compress`
-    : 'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath | ConvertTo-Json -Compress';
+  // Recheck identity inside PowerShell before selecting CommandLine: a PID can
+  // be reused between the tree inventory and this detailed query.
+  const quote = value => `'${value.replace(/'/g, "''")}'`;
+  const columns = "ProcessId,ParentProcessId,Name,ExecutablePath,@{Name='CreationTime';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}}";
+  const identityFilter = owned.map(row => `($_.ProcessId -eq ${row.pid} -and $_.Name -ieq ${quote(row.name)} -and $_.ExecutablePath -ieq ${quote(row.executablePath)} -and $_.CreationDate.ToUniversalTime().ToString('o') -ceq ${quote(row.creationTime)})`).join(' -or ');
+  const command = owned.length
+    ? `Get-CimInstance Win32_Process -Filter '${owned.map(row => `ProcessId = ${row.pid}`).join(' OR ')}' | Where-Object { ${identityFilter} } | Select-Object ${columns},CommandLine | ConvertTo-Json -Compress`
+    : `Get-CimInstance Win32_Process | Select-Object ${columns} | ConvertTo-Json -Compress`;
   const result = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
     command],
   { windowsHide: true, timeout: 12000, maxBuffer: 8 * 1024 * 1024 });
@@ -129,15 +152,18 @@ async function ownedSidecars(application) {
     }
   }
   const native = rows.filter(row => descendants.has(row.ProcessId) && /^(?:ffmpeg|mediamtx)\.exe$/i.test(row.Name));
-  const details = native.length ? await processSnapshot(native.map(row => row.ProcessId)) : [];
+  const identities = native.map(processIdentity);
+  const details = identities.length ? await processSnapshot(identities) : [];
   return details
-    .map(row => ({ pid: row.ProcessId, name: row.Name.toLowerCase(), executablePath: row.ExecutablePath, commandLine: row.CommandLine }));
+    .filter(row => identities.some(identity => sameProcess(row, identity)))
+    .map(row => ({ ...processIdentity(row), commandLine: row.CommandLine }));
 }
 
 async function sidecarsGone(owned) {
   if (!owned.length) return;
-  const expected = new Set(owned.map(row => row.pid));
-  await eventually(async () => (await processSnapshot()).filter(row => expected.has(row.ProcessId)),
+  // Historical PIDs alone are not ownership: later tests may legitimately reuse
+  // one for another Node/PowerShell process, or even a different FFmpeg session.
+  await eventually(async () => (await processSnapshot()).filter(row => owned.some(identity => sameProcess(row, identity))),
     rows => rows.length === 0, 'owned native subprocesses survived stop', 20000);
 }
 
@@ -272,20 +298,48 @@ async function createTone(application, errors) {
   progress('create quiet actual Windows output tone and moving capture window');
   const html = `<!doctype html><html><head><title>RTMP Windows output fixture</title></head>
     <body style="background:#1263bd;color:white;font:28px Segoe UI;padding:30px">
-    <p>Native RTMP capture fixture</p><p id="clock"></p><button id="tone-start">Start quiet ${SYSTEM_HZ} Hz output</button>
+    <p>Native RTMP capture fixture</p><p id="clock"></p><button id="tone-start">Prepare muted ${SYSTEM_HZ} Hz output</button>
     <script>
     setInterval(() => { document.querySelector('#clock').textContent = Date.now(); document.body.style.background = 'hsl(' + Date.now()/40%360 + ',60%,30%)'; }, 40);
     document.querySelector('#tone-start').onclick = async () => {
       if (window.__outputTone) return;
       const context = new AudioContext(), oscillator = context.createOscillator(), gain = context.createGain();
-      oscillator.frequency.value = ${SYSTEM_HZ}; gain.gain.value = ${SYSTEM_GAIN};
+      oscillator.frequency.value = ${SYSTEM_HZ}; gain.gain.value = 0;
       oscillator.connect(gain); gain.connect(context.destination); oscillator.start();
-      window.__outputTone = { context, oscillator, gain, stopped: false };
-      await context.resume(); document.querySelector('#tone-start').textContent = 'Actual Windows output running';
+      window.__outputTone = { context, oscillator, gain, stopped: false,
+        active: false, expired: false, wallDeadline: 0, audioDeadline: 0 };
+      await context.resume(); document.querySelector('#tone-start').textContent = 'Windows output prepared; muted between samples';
+    };
+    window.__muteOutputTone = () => {
+      const tone = window.__outputTone;
+      if (!tone || tone.stopped) return;
+      const now = tone.context.currentTime;
+      if (tone.active && (Date.now() >= tone.wallDeadline || now >= tone.audioDeadline)) tone.expired = true;
+      tone.active = false;
+      tone.gain.gain.cancelScheduledValues(now); tone.gain.gain.setValueAtTime(0, now);
+    };
+    window.__checkOutputToneLease = () => {
+      const tone = window.__outputTone;
+      if (!tone || tone.stopped) throw new Error('Windows output fixture is closed');
+      if (tone.active && (Date.now() >= tone.wallDeadline || tone.context.currentTime >= tone.audioDeadline)) {
+        tone.expired = true; window.__muteOutputTone();
+      }
+      if (tone.expired) throw new Error('Windows output sampling deadline expired; fixture cannot restart');
+    };
+    window.__sampleOutputTone = () => {
+      window.__checkOutputToneLease();
+      const tone = window.__outputTone;
+      const now = tone.context.currentTime;
+      tone.active = true; tone.wallDeadline = Date.now() + ${OUTPUT_WINDOW_MS};
+      tone.audioDeadline = now + ${OUTPUT_WINDOW_MS} / 1000;
+      tone.gain.gain.cancelScheduledValues(now);
+      tone.gain.gain.setValueAtTime(${SYSTEM_GAIN}, now);
+      tone.gain.gain.setValueAtTime(0, tone.audioDeadline);
     };
     window.__stopOutputTone = async () => {
       const tone = window.__outputTone;
       if (!tone || tone.stopped) return;
+      window.__muteOutputTone();
       tone.stopped = true; tone.oscillator.stop(); await tone.context.close();
     };
     </script></body></html>`;
@@ -294,7 +348,9 @@ async function createTone(application, errors) {
   await fixture.page.locator('#tone-start').click();
   await eventually(() => fixture.page.evaluate(() => ({ state: window.__outputTone?.context.state,
     time: window.__outputTone?.context.currentTime })), value => value.state === 'running' && value.time > 0.1,
-  'actual Windows output tone did not start');
+  'muted Windows output fixture did not start');
+  assert.equal(await fixture.page.evaluate(() => window.__outputTone.gain.gain.value), 0,
+    'Windows output fixture must be silent outside PCM sampling');
   return fixture;
 }
 
@@ -442,13 +498,27 @@ const present = tone => tone.amplitude > 0.0001;
 const retained = (tone, previous) => tone.amplitude > previous.amplitude * 0.55 && tone.amplitude < previous.amplitude * 1.6;
 const dropped = (tone, previous) => tone.amplitude < previous.amplitude * 0.2;
 
-async function measure(decoder, predicate, label, after = decoder.samples) {
-  return eventually(() => {
-    if (decoder.closed) throw new Error(`${label}: RTMP decoder exited ${decoder.exitCode}: ${publicReport(decoder.stderr)}`);
-    const evidence = pcmEvidence(decoder);
-    return { ...evidence, decoderRunning: !decoder.closed };
-  }, value => value.samples >= after + WINDOW_SAMPLES && value.decodedFrames >= 3 && value.rms > 0.0001 && predicate(value),
-  label, 30000, 3);
+async function measure(tone, decoder, predicate, label, after = decoder.samples, { output = true } = {}) {
+  // Each measurement owns one short output lease, with a scheduled zero gain
+  // independent of Node. Even a failed PCM predicate cannot leave sound playing.
+  const baseline = Math.max(after, decoder.samples);
+  try {
+    await tone.page.evaluate(enabled => {
+      if (enabled) window.__sampleOutputTone();
+      else { window.__muteOutputTone(); window.__checkOutputToneLease(); }
+    }, output);
+    const evidence = await eventually(() => {
+      if (decoder.closed) throw new Error(`${label}: RTMP decoder exited ${decoder.exitCode}: ${publicReport(decoder.stderr)}`);
+      const evidence = pcmEvidence(decoder);
+      return { ...evidence, decoderRunning: !decoder.closed };
+    }, value => value.samples >= baseline + WINDOW_SAMPLES && value.decodedFrames >= 3 && value.rms > 0.0001 && predicate(value),
+    label, OUTPUT_WINDOW_MS, 3);
+    // Buffered PCM after automatic silence cannot count as a successful lease.
+    await tone.page.evaluate(() => { window.__checkOutputToneLease(); });
+    return evidence;
+  } finally {
+    if (!tone.page.isClosed()) await tone.page.evaluate(() => { window.__muteOutputTone?.(); });
+  }
 }
 
 async function closeDecoder(decoder) {
@@ -547,7 +617,9 @@ async function main() {
   await fs.mkdir(profile, { recursive: true });
   const report = { startedAt: new Date().toISOString(), passed: false, checks: [],
     scope: 'same-PC production native selected-window capture and real Windows output loopback, final mixed MediaStream, bundled MediaMTX/FFmpeg RTMP hardware/software H.264 and HEVC with actual video/AAC decode alongside a production web receiver; explicit synthetic microphone input only',
-    fixtures: { system: { hz: SYSTEM_HZ, gain: SYSTEM_GAIN, output: 'actual AudioContext.destination -> Windows output loopback' },
+    fixtures: { system: { hz: SYSTEM_HZ, gain: SYSTEM_GAIN, output: 'actual AudioContext.destination -> Windows output loopback',
+      defaultMuted: true, mutedBetweenMeasurements: true, maxOutputWindowMs: OUTPUT_WINDOW_MS,
+      scheduledAutomaticMute: true, expiredLeaseCannotRestart: true },
       microphone: { hz: MIC_HZ, gain: MIC_GAIN, boundary: 'getUserMedia audio-only input' },
       receiverLocalOutputMuted: true }, measurements: {} };
   const errors = [];
@@ -611,7 +683,7 @@ async function main() {
     report.h264HardwareEncoder = await assertEncoder(host, report.mixedCapture, 'H264', true, copySidecars);
 
     const decoder = createDecoder(firstUrl, 'mixed-h264-hardware');
-    const both = report.measurements.bothInputs = await measure(decoder,
+    const both = report.measurements.bothInputs = await measure(tone, decoder,
       value => present(value.system) && present(value.microphone), 'real loopback and microphone did not arrive as decoded RTMP PCM');
     const companion = await openViewer(application, firstInvite, errors);
     report.webDecode = await webFrames(companion.page);
@@ -622,37 +694,35 @@ async function main() {
     await hostViewers(host, 2);
     check('production webpage decodes video alongside RTMP; shared two-viewer limit rejects a third viewer through both protocols');
 
-    await tone.page.evaluate(() => { window.__outputTone.gain.gain.setValueAtTime(0, window.__outputTone.context.currentTime); });
-    const outputOff = report.measurements.actualOutputOff = await measure(decoder,
+    const outputOff = report.measurements.actualOutputOff = await measure(tone, decoder,
       value => dropped(value.system, both.system) && retained(value.microphone, both.microphone),
-      'stopping actual Windows output must remove only decoded 440 Hz');
-    await tone.page.evaluate(gain => { window.__outputTone.gain.gain.setValueAtTime(gain, window.__outputTone.context.currentTime); }, SYSTEM_GAIN);
-    const outputOn = report.measurements.actualOutputRestored = await measure(decoder,
+      'stopping actual Windows output must remove only decoded 440 Hz', decoder.samples, { output: false });
+    const outputOn = report.measurements.actualOutputRestored = await measure(tone, decoder,
       value => retained(value.system, both.system) && retained(value.microphone, both.microphone),
       'restoring actual Windows output must restore only its RTMP frequency', outputOff.samples);
     await setSlider(host, 'system-volume', 0);
-    const systemZero = report.measurements.systemZero = await measure(decoder,
+    const systemZero = report.measurements.systemZero = await measure(tone, decoder,
       value => dropped(value.system, both.system) && retained(value.microphone, both.microphone),
       'system 0% must preserve microphone 880 Hz', outputOn.samples);
     await setSlider(host, 'system-volume', 100);
-    const restored = report.measurements.systemRestored = await measure(decoder,
+    const restored = report.measurements.systemRestored = await measure(tone, decoder,
       value => retained(value.system, both.system) && retained(value.microphone, both.microphone),
       'system volume restore did not recover RTMP inputs', systemZero.samples);
     await setSlider(host, 'mic-volume', 50);
-    const micHalf = report.measurements.microphoneHalf = await measure(decoder,
+    const micHalf = report.measurements.microphoneHalf = await measure(tone, decoder,
       value => retained(value.system, restored.system) && present(value.microphone)
         && value.microphone.amplitude < restored.microphone.amplitude * 0.85 && value.microphone.amplitude > restored.microphone.amplitude * 0.2,
       'microphone 50% must reduce only its own decoded frequency', restored.samples);
     await setSlider(host, 'mic-volume', 100);
-    const beforeMute = await measure(decoder, value => retained(value.system, both.system) && retained(value.microphone, both.microphone),
+    const beforeMute = await measure(tone, decoder, value => retained(value.system, both.system) && retained(value.microphone, both.microphone),
       'microphone volume restore failed', micHalf.samples);
     await host.locator('#mute').click();
-    const muted = report.measurements.microphoneMuted = await measure(decoder,
+    const muted = report.measurements.microphoneMuted = await measure(tone, decoder,
       value => retained(value.system, both.system) && dropped(value.microphone, both.microphone),
       'microphone mute must leave the real system output audible', beforeMute.samples);
     assert.equal(await host.evaluate(() => document.querySelector('#preview').srcObject.getAudioTracks()[0].enabled), true);
     await host.locator('#mute').click();
-    report.measurements.unmuted = await measure(decoder,
+    report.measurements.unmuted = await measure(tone, decoder,
       value => retained(value.system, both.system) && retained(value.microphone, both.microphone),
       'microphone unmute did not restore both RTMP frequencies', muted.samples);
     check('actual RTMP PCM follows Windows output off/on, independent system/microphone gains and microphone mute');
@@ -661,7 +731,7 @@ async function main() {
     report.h264HardwareEncoder.actualDecodedVideoFrames = Number(report.codecs.streams.find(stream => stream.codec_type === 'video').nb_read_frames);
     await hostViewers(host, 1);
     const replacement = createDecoder(firstUrl, 'replacement-reader');
-    await measure(replacement, value => present(value.system) && present(value.microphone), 'released RTMP slot could not be reused');
+    await measure(tone, replacement, value => present(value.system) && present(value.microphone), 'released RTMP slot could not be reused');
     await hostViewers(host, 2);
     const rtmpIndex = await host.evaluate(() => window.__rtmpAcceptance.viewers.findIndex(viewer => viewer.protocol === 'rtmp'));
     assert.ok(rtmpIndex >= 0);
@@ -689,7 +759,7 @@ async function main() {
     const softwareSidecars = await ownedSidecars(application); observedSidecars.push(...softwareSidecars);
     report.h264SoftwareEncoder = await assertEncoder(host, report.softwareCapture, 'H264', false, softwareSidecars);
     const software = createDecoder(secondUrl, 'h264-software');
-    report.measurements.software = await measure(software, value => present(value.system) && present(value.microphone),
+    report.measurements.software = await measure(tone, software, value => present(value.system) && present(value.microphone),
       'production software H.264/AAC encoder did not decode both audio inputs');
     await closeDecoder(software); report.softwareCodecs = await probeCapture(software);
     report.h264SoftwareEncoder.actualDecodedVideoFrames = Number(report.softwareCodecs.streams.find(stream => stream.codec_type === 'video').nb_read_frames);
@@ -704,7 +774,7 @@ async function main() {
     const hevcSidecars = await ownedSidecars(application); observedSidecars.push(...hevcSidecars);
     report.hevcHardwareEncoder = await assertEncoder(host, report.hevcCapture, 'HEVC', true, hevcSidecars);
     const hevc = createDecoder(await host.locator('#rtmp-link').inputValue(), 'hevc-hardware', 'HEVC');
-    report.measurements.hevc = await measure(hevc, value => present(value.system) && present(value.microphone),
+    report.measurements.hevc = await measure(tone, hevc, value => present(value.system) && present(value.microphone),
       'production hardware HEVC/AAC RTMP did not decode both audio inputs');
     await closeDecoder(hevc); report.hevcCodecs = await probeCapture(hevc, 'hevc');
     report.hevcHardwareEncoder.actualDecodedVideoFrames = Number(report.hevcCodecs.streams.find(stream => stream.codec_type === 'video').nb_read_frames);
@@ -718,7 +788,7 @@ async function main() {
     const hevcSoftwareSidecars = await ownedSidecars(application); observedSidecars.push(...hevcSoftwareSidecars);
     report.hevcSoftwareEncoder = await assertEncoder(host, report.hevcSoftwareCapture, 'HEVC', false, hevcSoftwareSidecars);
     const hevcSoftware = createDecoder(await host.locator('#rtmp-link').inputValue(), 'hevc-software', 'HEVC');
-    report.measurements.hevcSoftware = await measure(hevcSoftware, value => present(value.system) && present(value.microphone),
+    report.measurements.hevcSoftware = await measure(tone, hevcSoftware, value => present(value.system) && present(value.microphone),
       'production software HEVC/AAC RTMP did not decode both audio inputs');
     await closeDecoder(hevcSoftware); report.hevcSoftwareCodecs = await probeCapture(hevcSoftware, 'hevc');
     report.hevcSoftwareEncoder.actualDecodedVideoFrames = Number(report.hevcSoftwareCodecs.streams.find(stream => stream.codec_type === 'video').nb_read_frames);
@@ -778,6 +848,9 @@ async function main() {
     assert.deepEqual(errors, []);
     report.passed = true;
   } catch (error) {
+    // Silence before collecting diagnostics or waiting for decoder shutdown.
+    if (tone && !tone.page.isClosed()) await bounded(tone.page.evaluate(() => { window.__muteOutputTone?.(); }),
+      2000, 'mute failed measurement output').catch(() => {});
     report.error = error.stack; report.failureStage = currentStep; report.pageErrors = errors;
     process.exitCode = 1; console.error(publicReport(error.stack || error.message));
     await saveReport(report);
@@ -797,10 +870,10 @@ async function main() {
       try { return await bounded(task, timeout, label); }
       catch (error) { (report.cleanupErrors ||= []).push(error.message); report.passed = false; process.exitCode = 1; }
     };
+    if (tone && !tone.page.isClosed()) await cleanup('stop actual output tone', tone.page.evaluate(async () => { await window.__stopOutputTone?.(); }));
     for (const decoder of decoders) await cleanup(`close owned ${decoder.name} decoder`, closeDecoder(decoder), 12000);
     if (conflictServer) await cleanup('close owned conflict listener', new Promise(resolve => conflictServer.close(resolve)));
     if (application) {
-      if (tone && !tone.page.isClosed()) await cleanup('stop actual output tone', tone.page.evaluate(async () => { await window.__stopOutputTone?.(); }));
       if (host && !host.isClosed()) {
         await cleanup('stop owned production broadcast', host.evaluate(() => {
           const button = document.querySelector('#start');
