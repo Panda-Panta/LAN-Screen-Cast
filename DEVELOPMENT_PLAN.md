@@ -29,7 +29,7 @@
 
 ## 当前交付：GitHub Release 1.0（2026-10-15）
 
-状态：本地适用验收及 ZIP CRC / 哈希已通过，远程发布收尾进行中。已创建公开仓库并首次同步 main，正式 1.0.0 EXE 已构建；282 项 Node、67 项语法、源码与打包各 22 项静音 GUI 及单文件 HEVC / NVIDIA 实际解码通过。用户要求停止本轮声音测试，音频复验明确未完成。程序元数据与附件统一 1.0.0，首次 GitHub 发布标题 Release 1.0、标签 v1.0，默认 HEVC + NVIDIA 优先保持。旧同名 1.0.0 开发包已在 .cache/github-release-1.0/previous-1.0-artifacts/ 备份并核对哈希；release/ 下的 1.3.1 EXE / ZIP 已按已知哈希核对后移除，未保留该版本附件。
+状态：已完成公开源码和 Release 1.0 发布，远端与四个附件 SHA256 核验通过；本轮音频复验按用户要求停止，明确未完成。正式 1.0.0 的 282 项 Node、67 项语法、源码与打包各 22 项静音 GUI、单文件 HEVC / NVIDIA 实际解码及 ZIP CRC / 哈希通过。程序元数据与附件统一 1.0.0，标签 v1.0，默认 HEVC + NVIDIA 优先保持。旧同名 1.0.0 开发包已在 .cache/github-release-1.0/previous-1.0-artifacts/ 备份并核对哈希；release/ 下的 1.3.1 EXE / ZIP 已按已知哈希核对后移除，未保留该版本附件。
 
 - 用户现场反馈：测试音过大。当前测试进程及 fixture 已结束，后续 Windows 输出测试信号由 0.03 降至 0.0003（幅度降低 100 倍，约 40 dB），只在真实回环采样时短暂播放，并设置自动停止期限；不更改系统音量或用户配置。quiet_system 独占 scripts/system-audio-smoke.js，quiet_rtmp 独占 scripts/rtmp-smoke.js，同批并行修改；主 agent 统一审查、重新收集匹配验证指纹的全部报告和发布。RTMP 检查同时修正 PID 被复用时把无关新进程误报为残留的问题，进程身份须包含创建时间和路径。
 - 主 agent 同时把 scripts/smoke.js 的所有测试观看窗口设为本机静音，保留真实 WebRTC 音频解码、启声按钮和静音开关验收，避免合成麦克风信号在本机扬声器播放。
@@ -42,3 +42,4 @@
 - 依赖：先确定仓库目标和可用认证，再核对公开清单 / 最大文件大小、实际二进制与既有证据；源码和产物都准备好后提交、普通推送，再创建 Release 并上传资产。若远程已有内容先检查，不覆盖或强推。
 - 验收：1.0.0 的 Node / 语法、源码和打包各三类静音 GUI、单文件及 ZIP 均收集当前版本 / 指纹证据；四份音频复验延期，完整运行门禁不能标通过。远端 main 与本地候选 SHA 一致，v1.0 指向相同生产字节的候选，Release 非草稿且标题正确，附件清单 / 大小 / SHA256 与本地文件一致。此前内部版本证据仅作基线，不替代本次重测。远程与本地交付状态分别记录。
 - 本地完成：quiet_system / quiet_rtmp 同批并行实现低音量与限时清理，default_review 独立复核最终差异；publish_audit 完成公开清单、历史证据边界和临时延期打包适配器审查，release_notes 定稿说明。主 agent 串行完成全部当前静音 GUI 和便携运行，保留用户配置；结构索引检查通过、无新增公开模块，ZIP 247 条目及 154 原生文件哈希通过。源程序和默认编码不变，本轮音频复验未完成不记为通过。
+- 远程完成：2026-10-15 07:47:46 UTC 发布 [Release 1.0](https://github.com/Panda-Panta/LAN-Screen-Cast/releases/tag/v1.0)，非草稿、非预发布并标记 Latest。标签指向候选 f666e804bdf6e13642a3ecdfa71475f979cf7be2，发布时 main 一致；EXE、ZIP、SHA256SUMS.txt、release-verification.json 共四个附件的服务端 SHA256 / 大小逐一匹配。本行及交付回执属于发布后的文档记录，已发布 ZIP 不再改写。
