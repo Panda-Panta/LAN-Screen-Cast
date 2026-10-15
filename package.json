@@ -1,0 +1,69 @@
+{
+  "name": "lan-screen-cast",
+  "version": "1.0.0",
+  "description": "局域网屏幕、窗口、系统声音和麦克风低延迟广播",
+  "main": "src/main.js",
+  "author": "LAN Screen Cast",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.js",
+    "test:smoke": "node scripts/smoke.js",
+    "test:gui": "node scripts/gui-regressions.js",
+    "test:features": "node scripts/features-smoke.js",
+    "test:system-audio": "node scripts/system-audio-smoke.js",
+    "build:dir": "electron-builder --win --x64 --dir",
+    "build": "electron-builder --win portable --x64",
+    "check": "node scripts/check.js",
+    "test:rtmp": "node scripts/rtmp-smoke.js"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.64.0"
+  },
+  "build": {
+    "appId": "local.lan.screen.cast",
+    "productName": "LAN Screen Cast",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "assets/icon.ico",
+      "assets/icon.png",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "signExecutable": false,
+      "artifactName": "LAN-Screen-Cast-${version}-win-${arch}.${ext}"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    },
+    "extraResources": [
+      {
+        "from": "vendor/media",
+        "to": "media",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
+}

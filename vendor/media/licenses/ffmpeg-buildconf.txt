@@ -1,0 +1,47 @@
+
+  configuration:
+    --prefix='D:/Project/SCREEN
+    1/.cache/media-dependencies/native-prefix'
+    --arch=x86_64
+    --target-os=mingw32
+    --cc=gcc
+    --cxx=g++
+    --ar=ar
+    --nm=nm
+    --ranlib=ranlib
+    --disable-autodetect
+    --disable-gpl
+    --disable-nonfree
+    --disable-version3
+    --disable-debug
+    --disable-doc
+    --disable-x86asm
+    --disable-everything
+    --enable-shared
+    --disable-static
+    --disable-ffplay
+    --enable-ffmpeg
+    --enable-ffprobe
+    --enable-network
+    --disable-pthreads
+    --enable-w32threads
+    --enable-mediafoundation
+    --enable-d3d11va
+    --enable-ffnvcodec
+    --enable-nvenc
+    --enable-libkvazaar
+    --pkg-config='bash D:/Project/SCREEN
+    1/vendor/media/sources/minimal-pkg-config.sh'
+    --extra-ldflags=-static-libgcc
+    --extra-version=lan-cast-1
+    --enable-protocol='file,pipe,tcp,rtmp'
+    --enable-demuxer='matroska,flv,mov,wav,rawvideo,pcm_s16le'
+    --enable-muxer='flv,matroska,wav,rawvideo,pcm_s16le,pcm_f32le,null,mpegts'
+    --enable-parser='aac,aac_latm,h264,hevc,opus,vp8'
+    --enable-decoder='aac,aac_fixed,h264,hevc,opus,vp8,pcm_s16le,pcm_f32le,rawvideo,wrapped_avframe'
+    --enable-encoder='aac,h264_mf,hevc_mf,h264_nvenc,hevc_nvenc,libkvazaar,pcm_s16le,pcm_f32le,rawvideo,wrapped_avframe'
+    --enable-bsf='extract_extradata,h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc,null'
+    --enable-indev=lavfi
+    --enable-filter='aresample,aformat,anull,anullsink,null,nullsink,scale,format,fps,setsar,setpts,asetpts,testsrc,testsrc2,sine,anullsrc,color,drawbox,pad,crop,amix,volume,showinfo'
+
+Exiting with exit code 0

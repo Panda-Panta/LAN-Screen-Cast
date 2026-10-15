@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>LAN Screen Cast · 局域网投屏</title>
+  <link rel="stylesheet" href="host.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><svg viewBox="0 0 44 44" aria-hidden="true"><rect x="5" y="7" width="28" height="22" rx="4"/><path d="M13 36h16M21 29v7M37 12q7 8 0 16M32 17q4 3 0 7"/></svg><div><strong>LAN Screen Cast</strong><span>把画面，分享给同一网络里的设备。</span></div></div>
+    <div class="header-right"><span class="network-badge">100 Mbps 网络</span><span id="status" class="status"><i></i><span id="status-text">尚未广播</span></span></div>
+  </header>
+  <main class="workspace">
+    <aside class="settings panel" id="settings">
+      <section>
+        <div class="section-head"><h2>广播设置</h2><button id="refresh-networks" class="text-button config-control">刷新网络</button></div>
+        <label for="network">局域网网卡</label><select id="network" class="config-control"></select>
+        <div class="network-detail" id="network-detail">正在读取网络…</div>
+        <div class="two-fields"><div><label for="port">网页端口 · TCP</label><input id="port" type="number" min="1024" max="65535" value="8765" class="config-control"></div><div><label for="room">广播名称</label><input id="room" maxlength="48" value="局域网投屏" class="config-control"></div></div>
+      </section>
+      <section class="capture-section">
+        <div class="section-head"><h2>选择画面</h2><button id="refresh-sources" class="text-button config-control">刷新画面</button></div>
+        <div class="tabs" role="tablist" aria-label="采集类型"><button data-source-tab="screen" role="tab" aria-selected="true" class="active config-control">整个屏幕</button><button data-source-tab="window" role="tab" aria-selected="false" class="config-control">软件 / 游戏窗口</button></div>
+        <div id="source-list" class="sources" aria-label="可用采集源"></div>
+        <p class="hint">游戏建议使用无边框窗口；窗口最小化可能暂停画面。</p>
+      </section>
+      <section>
+        <h2>画质与带宽</h2>
+        <div class="two-fields"><div><label for="resolution">分辨率上限</label><select id="resolution" class="config-control"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="native">原始尺寸</option></select></div><div><label for="fps">帧率上限</label><select id="fps" class="config-control"><option value="30">30 帧 / 秒</option><option value="60">60 帧 / 秒</option></select></div></div>
+        <div class="two-fields"><div><label for="bitrate">每台码率 · Mbps</label><input id="bitrate" type="number" min="1" max="30" value="6" class="config-control"></div><div><label for="max-viewers">最多观看人数</label><input id="max-viewers" type="number" min="1" max="32" value="5" class="config-control"></div></div>
+        <div class="budget"><div><span>总视频预算</span><strong id="budget-value">30 / 70 Mbps</strong></div><progress id="budget-bar" max="70" value="30"></progress><p>为音频、协议开销和其他流量留出余量。</p></div>
+      </section>
+      <section class="audio-section">
+        <label class="switch-label" for="system-audio"><div><strong>广播系统声音</strong><span>游戏、音乐及其他电脑声音</span></div><input id="system-audio" type="checkbox" class="config-control switch"></label>
+        <p id="system-audio-status" class="hint">采集整台电脑播放的声音，包含其他应用。</p>
+        <div class="volume-control"><label for="system-volume">系统声音广播音量 <output id="system-volume-value" for="system-volume">100%</output></label><input id="system-volume" class="audio-volume" type="range" min="0" max="100" step="1" value="100" disabled></div>
+        <label class="switch-label" for="microphone"><div><strong>同时广播麦克风</strong><span>接收端可自行静音</span></div><input id="microphone" type="checkbox" class="config-control switch"></label>
+        <div class="section-head"><label for="mic-device">麦克风设备</label><button id="refresh-microphones" class="text-button config-control">刷新麦克风</button></div><select id="mic-device" class="config-control" disabled><option value="">系统默认麦克风</option></select>
+        <div class="volume-control"><label for="mic-volume">麦克风广播音量 <output id="mic-volume-value" for="mic-volume">100%</output></label><input id="mic-volume" class="audio-volume" type="range" min="0" max="100" step="1" value="100" disabled></div>
+        <p id="microphone-status" class="hint" role="status" aria-live="polite">正在读取麦克风设备…</p>
+      </section>
+      <section class="rtmp-section">
+        <label class="switch-label" for="rtmp-enabled"><div><strong>同时提供 RTMP 播放源</strong><span>地址可直接粘贴到 PotPlayer / VLC</span></div><input id="rtmp-enabled" type="checkbox" checked class="config-control switch"></label>
+        <div id="rtmp-port-fields"><label for="rtmp-port">RTMP 本机端口 · TCP</label><input id="rtmp-port" type="number" min="1024" max="65535" value="1935" class="config-control">
+          <div class="two-fields"><div><label for="rtmp-codec">RTMP 视频编码</label><select id="rtmp-codec" class="config-control"><option value="H264">H.264 · 兼容</option><option value="HEVC" selected>HEVC / H.265</option></select></div><div><label for="rtmp-acceleration">RTMP 编码方式</label><select id="rtmp-acceleration" class="config-control"><option value="auto">NVIDIA 硬件优先</option><option value="hardware">仅硬件</option><option value="software">软件编码</option></select></div></div>
+        </div>
+        <p class="hint">默认 HEVC，优先 NVIDIA NVENC，不可用时尝试其他编码器。HEVC 使用 Enhanced RTMP，需要接收软件支持；H.264 / AAC 可用于兼容。网页编码单独选择，播放延迟取决于播放器缓存。</p>
+      </section>
+      <section class="forwarding-section">
+        <label class="switch-label" for="forwarding-enabled"><div><strong>一级网络用户观看</strong><span>适用于校园网下的二级路由器</span></div><input id="forwarding-enabled" type="checkbox" class="config-control switch"></label>
+        <div id="forwarding-fields" hidden>
+          <label class="switch-label" for="auto-router-address"><div><strong>自动读取路由器 WAN 地址</strong><span>支持 UPnP / NAT-PMP 时，每 30 秒检查变化</span></div><input id="auto-router-address" type="checkbox" checked class="config-control switch"></label>
+          <label for="advertised-host">二级路由器 WAN 口 IPv4</label><input id="advertised-host" class="config-control" placeholder="例如 10.20.30.40" maxlength="15" inputmode="decimal" autocomplete="off">
+          <div class="router-detection"><button id="detect-router" class="text-button config-control">立即读取地址</button><span id="router-status" role="status" aria-live="polite">支持自动读取，也可关闭自动模式后手动填写。</span></div>
+          <label for="advertised-port">路由器对外网页端口 · TCP</label><input id="advertised-port" type="number" min="1" max="65535" value="8765" class="config-control">
+          <div id="advertised-rtmp-fields"><label for="advertised-rtmp-port">路由器对外 RTMP 端口 · TCP</label><input id="advertised-rtmp-port" type="number" min="1" max="65535" value="1935" class="config-control"></div>
+          <p class="hint">WAN 地址可在路由器“上网状态”中查看。网页需要 TCP 与 UDP 转发，RTMP 需要对应 TCP 转发；请固定本机 DHCP 租约。</p>
+          <details class="mapping-help"><summary>查看端口转发清单</summary><pre id="mapping-list"></pre><button id="copy-mapping" class="text-button">复制配置清单</button><p class="hint">清单供手动配置，不会修改路由器。若校园网开启用户隔离，转发后仍可能无法访问。</p></details>
+        </div>
+      </section>
+      <details class="advanced"><summary>高级设置与连接帮助</summary>
+        <label for="codec">网页视频编码优先级</label><select id="codec" class="config-control"><option value="auto">自动 · 优先 H.264</option><option value="H264">优先 H.264</option><option value="HEVC" selected>优先 HEVC / H.265</option><option value="VP8">优先 VP8</option></select>
+        <p id="codec-support" class="hint">正在检查本机编码能力…</p>
+        <div class="two-fields"><div><label for="udp-min">UDP 起始端口</label><input id="udp-min" type="number" value="50000" min="1024" max="65535" class="config-control"></div><div><label for="udp-max">UDP 结束端口</label><input id="udp-max" type="number" value="50100" min="1024" max="65535" class="config-control"></div></div>
+        <p class="hint">Windows 防火墙需允许此程序的网页 TCP 端口、上述 UDP 范围及启用时的 RTMP TCP 端口。校园网络可能被 Windows 识别为公用网络，请按实际网络类型配置规则。设备之间需要允许通信。</p>
+      </details>
+      <div class="start-area"><button id="start" class="primary" disabled><span class="start-symbol">◉</span><span>开始广播</span></button><p>先选择画面，再分享观看链接。</p><p id="settings-status" role="status" aria-live="polite">设置会自动保存</p></div>
+    </aside>
+    <div class="broadcast-area">
+      <section class="monitor panel">
+        <div class="monitor-header"><div><span class="eyebrow">本机预览</span><h1 id="source-name">选择要分享的画面</h1></div><span id="preview-size" class="mono">—</span></div>
+        <div class="preview-frame"><video id="preview" autoplay muted playsinline></video><div id="preview-empty" class="preview-empty"><svg viewBox="0 0 90 70" aria-hidden="true"><rect x="9" y="8" width="62" height="43" rx="6"/><path d="M24 62h31M39 51v11M77 15q12 15 0 29M69 21q7 8 0 16"/></svg><strong>你的画面将在这里出现</strong><span>屏幕、演示、软件，或正在玩的游戏</span></div><span id="live-label" class="live-label" hidden><i></i>正在广播</span></div>
+        <div class="monitor-footer"><div class="metrics"><span>观看设备 <strong id="viewer-count">0</strong></span><span>视频发送 <strong id="upload">—</strong></span></div><button id="mute" class="secondary" hidden>麦克风静音</button></div>
+      </section>
+      <section class="share panel">
+        <div class="share-copy"><div class="section-head"><h2>让其他设备加入</h2><span class="small-tag">网页 + 播放器</span></div><label class="sr-only" for="share-target">分享给哪个网络</label><select id="share-target" class="share-target" disabled><option value="local">本路由器内的设备</option><option value="forwarded" disabled>一级网络的用户</option></select><p id="share-description">开始广播后，分享链接或扫描二维码即可观看。</p>
+          <label class="sr-only" for="invite-link">邀请链接</label><div class="link-row"><input id="invite-link" readonly placeholder="开始广播后生成观看链接"><button id="copy-link" class="secondary" disabled>复制链接</button></div>
+          <div class="manual-entry"><span>手动输入 <b id="plain-url" class="mono">—</b></span><span>观看码 <strong id="pin" class="mono">------</strong></span><button id="copy-code" class="text-button" disabled>复制地址与码</button></div>
+          <div class="rtmp-share"><label for="rtmp-link">RTMP · PotPlayer / VLC 观看</label><div class="link-row"><input id="rtmp-link" readonly placeholder="开始广播后生成 RTMP 地址"><button id="copy-rtmp" class="secondary" disabled>复制 RTMP</button></div><p id="rtmp-status" role="status" aria-live="polite">开始广播后可用播放器观看。</p></div>
+        </div><div class="qr-wrap"><img id="qr" alt="扫描二维码打开观看页" hidden><span id="qr-placeholder">二维码<br>等待广播</span></div>
+      </section>
+      <section class="participants panel"><div class="section-head"><h2>观看设备</h2><span id="participants-note">开始广播后显示连接设备</span></div><div id="viewers"><p class="empty-list">还没有设备加入。</p></div></section>
+      <p class="footer-note">网页使用 WebRTC · RTMP 支持 H.264 / HEVC + AAC · 地址仅在本次广播期间有效</p>
+    </div>
+  </main>
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="host.js"></script>
+</body>
+</html>

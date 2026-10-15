@@ -1,0 +1,835 @@
+{
+  "schemaVersion": 1,
+  "dependencies": [
+    {
+      "name": "MediaMTX",
+      "version": "1.21.2",
+      "licenseExpression": "MIT",
+      "archiveSha256": "a84224f5a490855684e62ba6fb71e80ea2a5e16aed61883bb58380290e93e467",
+      "sources": [
+        "https://github.com/bluenviron/mediamtx/releases/tag/v1.21.2",
+        "https://codeload.github.com/bluenviron/mediamtx/zip/914e39535ece709919ac325aaeed98d394ed9093"
+      ],
+      "sourceCommit": "914e39535ece709919ac325aaeed98d394ed9093",
+      "moduleNotices": "licenses/mediamtx-dependencies.json",
+      "buildConfiguration": "Official windows_amd64 release; Go 1.27.2; CGO_ENABLED=0; GOAMD64=v1; vcs.modified=false"
+    },
+    {
+      "name": "FFmpeg",
+      "version": "ffmpeg version 8.1.3-lan-cast-1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "licenseExpression": "LGPL-2.1-or-later",
+      "archiveSha256": "a133a3bb8317ec5357605a356df181d24a4f00347e9f7f6cbaea9f678f59d57d",
+      "sources": [
+        "https://codeload.github.com/FFmpeg/FFmpeg/zip/46d899d7a02bc63237472cc4897258d5ddf274ac",
+        "sources/rebuild-ffmpeg.sh",
+        "sources/minimal-pkg-config.sh"
+      ],
+      "sourceCommit": "46d899d7a02bc63237472cc4897258d5ddf274ac",
+      "buildConfiguration": "--prefix='D:/Project/SCREEN~1/.cache/media-dependencies/native-prefix' --arch=x86_64 --target-os=mingw32 --cc=gcc --cxx=g++ --ar=ar --nm=nm --ranlib=ranlib --disable-autodetect --disable-gpl --disable-nonfree --disable-version3 --disable-debug --disable-doc --disable-x86asm --disable-everything --enable-shared --disable-static --disable-ffplay --enable-ffmpeg --enable-ffprobe --enable-network --disable-pthreads --enable-w32threads --enable-mediafoundation --enable-d3d11va --enable-ffnvcodec --enable-nvenc --enable-libkvazaar --pkg-config='bash D:/Project/SCREEN~1/vendor/media/sources/minimal-pkg-config.sh' --extra-ldflags=-static-libgcc --extra-version=lan-cast-1 --enable-protocol='file,pipe,tcp,rtmp' --enable-demuxer='matroska,flv,mov,wav,rawvideo,pcm_s16le' --enable-muxer='flv,matroska,wav,rawvideo,pcm_s16le,pcm_f32le,null,mpegts' --enable-parser='aac,aac_latm,h264,hevc,opus,vp8' --enable-decoder='aac,aac_fixed,h264,hevc,opus,vp8,pcm_s16le,pcm_f32le,rawvideo,wrapped_avframe' --enable-encoder='aac,h264_mf,hevc_mf,h264_nvenc,hevc_nvenc,libkvazaar,pcm_s16le,pcm_f32le,rawvideo,wrapped_avframe' --enable-bsf='extract_extradata,h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc,null' --enable-indev=lavfi --enable-filter='aresample,aformat,anull,anullsink,null,nullsink,scale,format,fps,setsar,setpts,asetpts,testsrc,testsrc2,sine,anullsrc,color,drawbox,pad,crop,amix,volume,showinfo'"
+    },
+    {
+      "name": "Kvazaar",
+      "version": "2.3.2",
+      "licenseExpression": "BSD-3-Clause AND ISC",
+      "archiveSha256": "8d29a6e3ce99a765f98e56239f92c94f21afce5b7c160cea26098bcb4dff0076",
+      "sources": [
+        "https://codeload.github.com/ultravideo/kvazaar/zip/2b06691bb5844404c0e703f12a5d7b0fee914ec7"
+      ],
+      "sourceCommit": "2b06691bb5844404c0e703f12a5d7b0fee914ec7",
+      "buildConfiguration": "CMake Release; BUILD_SHARED_LIBS=OFF; BUILD_TESTS=OFF; BUILD_KVAZAAR_BINARY=OFF; USE_CRYPTO=OFF; linked statically into avcodec"
+    },
+    {
+      "name": "nv-codec-headers",
+      "version": "13.0.19.2.0",
+      "licenseExpression": "MIT",
+      "archiveSha256": "08cbb5b23676db26ca1cda581f0d6c37c63c43a57e3ee055ba1a45d35da3410a",
+      "sources": [
+        "https://codeload.github.com/FFmpeg/nv-codec-headers/zip/ced4f8eba3ba5dd431932cba17928f0dffdaeb2b"
+      ],
+      "sourceCommit": "ced4f8eba3ba5dd431932cba17928f0dffdaeb2b",
+      "buildConfiguration": "Headers only; SDK 13.0.19; Windows NVIDIA driver 570 or later; no NVIDIA driver DLL distributed"
+    },
+    {
+      "name": "MinGW runtime",
+      "version": "GCC 16.1.0; MinGW-w64 14; UCRT; posix-seh-rev0",
+      "licenseExpression": "GPL-3.0-or-later WITH GCC-exception-3.1; MIT; BSD-3-Clause; public domain",
+      "archiveSha256": "ecaceb42639d21c695f875800a29b2dea76bbb05eb2a1cca3049b65499b8d867",
+      "sources": [
+        "https://github.com/niXman/mingw-builds-binaries/releases/download/16.1.0-rt_v14-rev0/x86_64-16.1.0-release-posix-seh-ucrt-rt_v14-rev0.7z",
+        "https://github.com/niXman/mingw-builds",
+        "licenses/toolchain-build-info.txt"
+      ],
+      "buildConfiguration": "-static-libgcc; static winpthreads for Kvazaar; libwinpthread-1.dll required by libgcc emulated TLS; original compiler runtime notices included",
+      "compilerVersion": "gcc.exe (x86_64-posix-seh-rev0, Built by MinGW-Builds project) 16.1.0",
+      "compilerSha256": "b679be675c6dcddee63cf973f8bcbde303a421b531d88688ae962715eb01e650",
+      "winpthreadsSha256": "8711dd7e72bbfde9d4c413de971687eafda310331a6def5327ef14e7e2294de8"
+    }
+  ],
+  "files": [
+    {
+      "path": "bin/avcodec-62.dll",
+      "sha256": "99f9e14a8752b7a4d9b52446d7328c1b0c27df942acfb36b442edc7b753360ce",
+      "size": 5896192
+    },
+    {
+      "path": "bin/avdevice-62.dll",
+      "sha256": "34473548954e4cca0b908b30be7879f50ecf67351e92978076dcd8ebc3a8287c",
+      "size": 68608
+    },
+    {
+      "path": "bin/avfilter-11.dll",
+      "sha256": "0e9d6b889db013a40e1c1442bd99b79ab3f7d0bd8d1e87c28cf8426e01409eba",
+      "size": 328704
+    },
+    {
+      "path": "bin/avformat-62.dll",
+      "sha256": "6414da849aa0c33594990f79d0d2f01ed6165b2da0e8c37da4d7638c607bddbe",
+      "size": 886272
+    },
+    {
+      "path": "bin/avutil-60.dll",
+      "sha256": "57deaa89dbd4699f30c7a3fbee9b4c740f0b77a000497ee2ffe85d8be845f3f5",
+      "size": 936448
+    },
+    {
+      "path": "bin/ffmpeg.exe",
+      "sha256": "9890e2bf73d0ca128e86f6733be3dced26b83a89ea2e663692fbc9cc4c8ad0d2",
+      "size": 471040
+    },
+    {
+      "path": "bin/ffprobe.exe",
+      "sha256": "6efa6937bc4b818f4840459e919fab45db3639cf6fc85e75884f3f86951c6560",
+      "size": 214016
+    },
+    {
+      "path": "bin/libwinpthread-1.dll",
+      "sha256": "8711dd7e72bbfde9d4c413de971687eafda310331a6def5327ef14e7e2294de8",
+      "size": 56832
+    },
+    {
+      "path": "bin/mediamtx.exe",
+      "sha256": "31bc3cc425a0278c7a5696c7ba309257235060157eb338eed20bb88dbe0faf87",
+      "size": 57024512
+    },
+    {
+      "path": "bin/swresample-6.dll",
+      "sha256": "0547c6dfe636ad640dc2d47cea2c38770b0fe92657338bcc0ae05b49a3083bfa",
+      "size": 146944
+    },
+    {
+      "path": "bin/swscale-9.dll",
+      "sha256": "f467de9bf3018a7b5f9820c5e5cca07caaf2f91662738fc53c50f31d37a2aca0",
+      "size": 1777664
+    },
+    {
+      "path": "licenses/README.md",
+      "sha256": "0e11cc198d8532f362a53759b0d15cac4a2d481ddbfb3f4ca29e2dc82cd24dc5",
+      "size": 5600
+    },
+    {
+      "path": "licenses/ffmpeg-LICENSE.md",
+      "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+      "size": 4346
+    },
+    {
+      "path": "licenses/ffmpeg-LICENSE.txt",
+      "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+      "size": 26517
+    },
+    {
+      "path": "licenses/ffmpeg-buildconf.txt",
+      "sha256": "2bf6c960a26b9594da16690a0ab22f962a8a9f0aea318f864daee314dd69003d",
+      "size": 1612
+    },
+    {
+      "path": "licenses/ffmpeg-version.txt",
+      "sha256": "15377b3d3761f0dcbe5ddcd193ee61adff78a8a31fc29cc0ce273fa0f72037e2",
+      "size": 1865
+    },
+    {
+      "path": "licenses/go-LICENSE.txt",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/go-PATENTS.txt",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/kvazaar-LICENSE.txt",
+      "sha256": "3c1dc3d7f8a3d08c14f4fbe9942f45764d8a21a3296e8d83446f33fd65f21c38",
+      "size": 1549
+    },
+    {
+      "path": "licenses/kvazaar-threadwrapper-LICENSE.txt",
+      "sha256": "e4c9f82e9970cded92135cdc88f8a2f8e35b6d2fdb5fd879ea713cadfd6fbac3",
+      "size": 731
+    },
+    {
+      "path": "licenses/mediamtx-LICENSE.txt",
+      "sha256": "ecae73b0a23185a35a1222edc0aae5245bb9739420bad0125b0c42e935301a80",
+      "size": 1062
+    },
+    {
+      "path": "licenses/mediamtx-checksums.sha256",
+      "sha256": "dea2c0c398ddf7c28a7d55f084be45555ad88a10ff920b299812f47e0ae8caba",
+      "size": 715
+    },
+    {
+      "path": "licenses/mediamtx-dependencies.json",
+      "sha256": "93d62f5d3ee56d6f83e1c4405d471904c92f1b9437171b972a4aa25bafb635a5",
+      "size": 43525
+    },
+    {
+      "path": "licenses/mediamtx-modules/aead.dev_minisign_v0.2.0/LICENSE",
+      "sha256": "d2e73e3423b8898d7d2fba4e55a2abb43969603fe32fdd468f197ff238969d28",
+      "size": 1076
+    },
+    {
+      "path": "licenses/mediamtx-modules/code.cloudfoundry.org_bytefmt_v0.92.0/LICENSE",
+      "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "size": 11356
+    },
+    {
+      "path": "licenses/mediamtx-modules/code.cloudfoundry.org_bytefmt_v0.92.0/NOTICE",
+      "sha256": "7158ca3ed9d0fd5f0714f0aef14236ea299f7015e87f43c3d3ca0ef73dbd3957",
+      "size": 929
+    },
+    {
+      "path": "licenses/mediamtx-modules/dario.cat_mergo_v1.0.0/LICENSE",
+      "sha256": "cb7684632b729955293cab8a0bbf4134d53d9532a30761c33c8a4878302a7bd3",
+      "size": 1536
+    },
+    {
+      "path": "licenses/mediamtx-modules/dario.cat_mergo_v1.0.0/testdata/license.yml",
+      "sha256": "4f72fe957ed4e04e7edd2980165e25158b8a26bbe875327d6b89637f6db60d51",
+      "size": 90
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_Masterminds_semver_v3_v3.5.0/LICENSE.txt",
+      "sha256": "2db9097f7b3750c1c9426996d21fe443d339131fb758c2167d2d5fabe8e6cbf9",
+      "size": 1078
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_MicahParks_jwkset_v0.11.3/LICENSE",
+      "sha256": "d29a612e558e5dfe5cc4f526db47e34333fd964670d71d165381667ac3237683",
+      "size": 11341
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_MicahParks_keyfunc_v3_v3.8.2/LICENSE",
+      "sha256": "3076430af5b3c5aff3e9941961fcf8dd68c986fd71fdf137ae9d86ea989385d8",
+      "size": 11341
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_Microsoft_go-winio_v0.6.2/LICENSE",
+      "sha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409",
+      "size": 1077
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_ProtonMail_go-crypto_v1.1.6/AUTHORS",
+      "sha256": "5aa3167c44245f0b12b27195d85c6a8c8e067cfdd511059daa4d7b3c5b232129",
+      "size": 174
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_ProtonMail_go-crypto_v1.1.6/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067",
+      "size": 1479
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_ProtonMail_go-crypto_v1.1.6/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_abema_go-mp4_v1.7.3/LICENSE",
+      "sha256": "d4385d60c65fc945b344c72249745013525f5044cb28aae55d54026b34fa6040",
+      "size": 1064
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_alecthomas_kong_v1.16.1/COPYING",
+      "sha256": "b4d35ea38d0b8ef32660d07960489c41c25a22f9d259558b29cd421fd2ee7d54",
+      "size": 1055
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_asticode_go-astikit_v0.30.0/LICENSE",
+      "sha256": "ee637a015179a5ee9217021e79ab7af18b06caf6f2189eab789ba79469259e2b",
+      "size": 1071
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_asticode_go-astits_v1.16.0/LICENSE",
+      "sha256": "2766a23df71a54e950da86d60ad19266bea105ecfaa4b043d6118383ce5d497d",
+      "size": 1071
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_bluenviron_gohlslib_v2_v2.4.6/LICENSE",
+      "sha256": "fa584448e3023627b43c85c80e02a793e6f48e8267636727161202b6bec053d9",
+      "size": 1062
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_bluenviron_gortmplib_v1.0.4/LICENSE",
+      "sha256": "75d0b8ea67767409c0b2a68f3e67c68eaedd5a144ba809b882c69995ab47be70",
+      "size": 1062
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_bluenviron_gortsplib_v5_v5.6.7/LICENSE",
+      "sha256": "fa584448e3023627b43c85c80e02a793e6f48e8267636727161202b6bec053d9",
+      "size": 1062
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_bluenviron_mediacommon_v2_v2.9.6/LICENSE",
+      "sha256": "76215646305d291d1555379a5bf42eb69e68c4de4edbf456d70d5772f6a411ae",
+      "size": 1062
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_cloudflare_circl_v1.6.3/LICENSE",
+      "sha256": "b0da1764fe4d13d610b695536fc3f2ebc362482d053a1cd258e36975bc6b97a7",
+      "size": 3028
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_cloudflare_circl_v1.6.3/ecc/p384/LICENSE",
+      "sha256": "18951c084f68bce792efa2037685466628ebc1c67f4bff8b7147f3d5050e50a4",
+      "size": 1489
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_cyphar_filepath-securejoin_v0.6.1/COPYING.md",
+      "sha256": "83e36e42b3dacc3d447eca3049848b3e2ff66b6e1768a6a3cf3f27a57079bda4",
+      "size": 19787
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_cyphar_filepath-securejoin_v0.6.1/LICENSE.BSD",
+      "sha256": "26be8a79415737dfe8edf1be62e71afeb8c770ed5a5605a06270d5701830f47c",
+      "size": 1548
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_cyphar_filepath-securejoin_v0.6.1/LICENSE.MPL-2.0",
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "size": 16726
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_datarhei_gosrt_v0.12.0/LICENSE",
+      "sha256": "e06fa69a1323047677ade8e6757aa248183203e6b80025d3029db090d3b48624",
+      "size": 1071
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_dunglas_httpsfv_v1.1.1/LICENSE",
+      "sha256": "2a5341732bde88aeb3b066492df6e15bf10d082761f9e3a251236ce80419d6ba",
+      "size": 1479
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_emirpasic_gods_v1.18.1/LICENSE",
+      "sha256": "871b440e9b348d6b2485c72e15f1d18f4cf8ee7bb424cbcd854b6a4a772b61d8",
+      "size": 2148
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_fsnotify_fsnotify_v1.10.1/LICENSE",
+      "sha256": "2dfbe6d2b5eb18b55148f3805d88648a09e0d17e38428123259afb08c8996e37",
+      "size": 1531
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gabriel-vasile_mimetype_v1.4.13/LICENSE",
+      "sha256": "b5a867655833aca9e27c97e28e43dcfc62be0ba0e84f24157afedf8fdaaa2fc1",
+      "size": 1071
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gin-contrib_pprof_v1.5.6/LICENSE",
+      "sha256": "bafe84dafda45b69105faab4dcd00c4c66736441f0dbe8deb836c48434f1cadc",
+      "size": 1066
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gin-contrib_sse_v1.1.1/LICENSE",
+      "sha256": "03458b6d5828e1be1127ca2adf122572eb574fc47b56190c3b38203b8b2a98d0",
+      "size": 1091
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gin-gonic_gin_v1.12.0/AUTHORS.md",
+      "sha256": "41711f484fa311b9b556397c0c3353197681b2c6599918483cc8f19bc68f26fe",
+      "size": 16285
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gin-gonic_gin_v1.12.0/LICENSE",
+      "sha256": "03458b6d5828e1be1127ca2adf122572eb574fc47b56190c3b38203b8b2a98d0",
+      "size": 1091
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-git_gcfg_v1.5.1-0.20230307220236-3a3c6141e376/LICENSE",
+      "sha256": "050855d9ceedf916a9e9f30d20c6f61a484448d2c2ed5810934bc8aef43861b4",
+      "size": 1524
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-git_go-billy_v5_v5.9.2/LICENSE",
+      "sha256": "4d324e3ccdba05b20e3ed1b9547f70f10da14e095ea2af32a895e8858b28a396",
+      "size": 11355
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-git_go-git_v5_v5.19.3/LICENSE",
+      "sha256": "fecc274e9b67f7e128c7d2ba1ad68fcf23b18fe0448d3c3671e943763502d504",
+      "size": 11356
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-playground_locales_v0.14.1/LICENSE",
+      "sha256": "a1a5ca382f9e8c646fa05240a74a6554bbc3084b5675f84c9eaafd3d95686612",
+      "size": 1079
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-playground_universal-translator_v0.18.1/LICENSE",
+      "sha256": "a55d0c6e1a35ee6cf13afb4bbc3c8801cc570d7ac8edcd5e4503892f1c7ff4f7",
+      "size": 1080
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_go-playground_validator_v10_v10.30.3/LICENSE",
+      "sha256": "9e321f6a1db81616a6c344d3aefddf9834fef23bdd913eae0db283dfa6753dff",
+      "size": 1077
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_goccy_go-yaml_v1.19.2/LICENSE",
+      "sha256": "43fe703ea9ebe27f0a6e5d2a1f6dd094fbe324251c743498f3ec19986d7349cd",
+      "size": 1072
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_golang-jwt_jwt_v5_v5.3.1/LICENSE",
+      "sha256": "fe26ca41577b9b2b4448050a24b25e5753af66b5d5945d5d36094e7790bfcb2f",
+      "size": 1100
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_golang_groupcache_v0.0.0-20241129210726-2c02b8208cf8/LICENSE",
+      "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68",
+      "size": 10273
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_google_gopacket_v1.1.19/AUTHORS",
+      "sha256": "c8cd51d98409d0010e52e8281315bb7e88109e8c88c224748fa359e7a07ea48a",
+      "size": 1743
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_google_gopacket_v1.1.19/LICENSE",
+      "sha256": "8025b28cd71e0a486b173d4a29a05478c003d197a907f99b61a05e181e90b92d",
+      "size": 1555
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_google_uuid_v1.6.0/LICENSE",
+      "sha256": "0a8d61ed3cbfd5312326e8126c31ce9c627a283adc99131b56896d29ada04b2d",
+      "size": 1480
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gookit_color_v1.6.1/LICENSE",
+      "sha256": "42c8d055a76a6a91e8f7102a106cd5929592d193aab7d43cdd816a93b24fa218",
+      "size": 1072
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gorilla_websocket_v1.5.3/AUTHORS",
+      "sha256": "fdebefabdd93d9701887ac1fa4df716322f71651000442cfd947325648a06675",
+      "size": 234
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_gorilla_websocket_v1.5.3/LICENSE",
+      "sha256": "2be1b548b0387ca8948e1bb9434e709126904d15f622cc2d0d8e7f186e4d122d",
+      "size": 1312
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_jbenet_go-context_v0.0.0-20150711004518-d14ea06fba99/LICENSE",
+      "sha256": "2537fe8521436047428c527abe7ecc9d5b5ec14af85bd8bd7ed29cfb8075146d",
+      "size": 1083
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_kballard_go-shellquote_v0.0.0-20180428030007-95032a82bc51/LICENSE",
+      "sha256": "3c0dbd7f2068b713b6784788ffde16a5b91baa86a61a1357e43beb97475a90b3",
+      "size": 1057
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_kevinburke_ssh_config_v1.2.0/AUTHORS.txt",
+      "sha256": "5ece0e9009c5ee45641cffb3e8959841b6cc2b1d9982d964891735433f5d933c",
+      "size": 359
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_kevinburke_ssh_config_v1.2.0/LICENSE",
+      "sha256": "a15a6f732df3a033a71853ce1d255bd671f00fbc537fa629b78d71baecda0ace",
+      "size": 2301
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_leodido_go-urn_v1.4.0/LICENSE",
+      "sha256": "fe81a9072afbfe0fe32b0bc99a852d697d14fbbca99b0b1878ac8f5dcbdd6ee6",
+      "size": 1075
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_matthewhartstonge_argon2_v1.6.3/LICENSE",
+      "sha256": "4cbe024cb9682b41b8081405bc3fb01296feab6366d8eb33c28fc597e268cf59",
+      "size": 11406
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_mattn_go-isatty_v0.0.23/LICENSE",
+      "sha256": "08eab1118c80885fa1fa6a6dd7303f65a379fcb3733e063d20d1bbc2c76e6fa1",
+      "size": 1099
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_minio_selfupdate_v0.6.0/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_minio_selfupdate_v0.6.0/LICENSE.minisig",
+      "sha256": "6c517a3e7546736b145b105ec326a0340d73e486b4b53d5740076aa568b0f921",
+      "size": 302
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_minio_selfupdate_v0.6.0/NOTICE",
+      "sha256": "94cfbeeaaed8737de434c3b4c11fa1abd6d15dc06c6fe84709f273fd363bf4de",
+      "size": 603
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_minio_selfupdate_v0.6.0/internal/binarydist/License",
+      "sha256": "4b6c0720c3a112229d5f8b8065641023db5cadf615bf98d3150c944adae283f2",
+      "size": 1052
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_minio_selfupdate_v0.6.0/internal/osext/LICENSE",
+      "sha256": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d",
+      "size": 1479
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pelletier_go-toml_v2_v2.4.3/LICENSE",
+      "sha256": "26844e4b53c5adec04e557fd7dfef281cc0205a7d355626b1c68b778b99e9e7b",
+      "size": 1101
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_datachannel_v1.6.3/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_dtls_v3_v3.1.9/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_ice_v4_v4.4.5/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_interceptor_v0.1.49/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_logging_v0.2.4/LICENSE",
+      "sha256": "87272dba8c4fcf57101a3195f4f53f7b010b6e153b9b0977bb1a3f91acddf691",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_mdns_v2_v2.2.2/LICENSE",
+      "sha256": "83e4dd21429a91fb7cea67a476032a9641425e5355df2e0f589a738b6ec9fd2c",
+      "size": 1057
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_randutil_v0.1.0/LICENSE",
+      "sha256": "badaf9bc72e71d5a70e7604c636b5b7adf79b9cafc188688438105d2b1e54722",
+      "size": 1061
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_rtcp_v1.2.19/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_rtp_v1.10.5/LICENSE",
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+      "size": 1078
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_sctp_v1.11.3/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_sdp_v3_v3.0.20/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_srtp_v3_v3.1.3/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_stun_v4_v4.0.1/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_transport_v5_v5.1.1/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_turn_v5_v5.1.2/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_webrtc_v4_v4.2.22/LICENSE",
+      "sha256": "6483daf6c8aa2c8192528e60be098aa82dd18f6d7b96dc8246f4f7c3333fbf3f",
+      "size": 1093
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pion_webrtc_v4_v4.2.22/test-wasm/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067",
+      "size": 1479
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pires_go-proxyproto_v0.15.0/LICENSE",
+      "sha256": "666f1951be1d543e744818d232bb311a4a310fd1d344288642c796fca39af3c7",
+      "size": 11341
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_pjbgf_sha1cd_v0.7.0/LICENSE",
+      "sha256": "c75aacd1e1f49bc504e3f00e7cfa58cb55d3bc7ff3d3c23f38e485da1906e0ad",
+      "size": 11335
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_quic-go_qpack_v0.6.0/LICENSE.md",
+      "sha256": "1b6a897efd39b20b3cdce8cd306160d115dbded39d855ceeffe21dc11e4d53df",
+      "size": 1054
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_quic-go_quic-go_v0.63.0/LICENSE",
+      "sha256": "77d0b7b53e8abb84cf4dd3f9945a7fdf27044240d2e8023966a721a9a46fe96e",
+      "size": 1091
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_quic-go_quic-go_v0.63.0/assets/LICENSE.md",
+      "sha256": "2c8d4ff4244edf09d99dcd428d278e47a059d24f0030b38c1ab38e93b1c8030c",
+      "size": 1413
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_quic-go_webtransport-go_v0.13.0/LICENSE",
+      "sha256": "83fcbe9e2a58019f63c1eb3dbccd74ec735bf69a750822bf4a0a17a1d174672c",
+      "size": 1054
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_sergi_go-diff_v1.3.2-0.20230802210424-5b0b94c5c0d3/AUTHORS",
+      "sha256": "23fd498d6fff0efbb09530b234fae2b6e87dc654a4226c1aebf889471bc808f0",
+      "size": 940
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_sergi_go-diff_v1.3.2-0.20230802210424-5b0b94c5c0d3/LICENSE",
+      "sha256": "27d7f7a027a2ba48083cc7912e5146629de65718ddac8ce006c08eb411508b52",
+      "size": 1091
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_skeema_knownhosts_v1.3.1/LICENSE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+      "size": 11357
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_skeema_knownhosts_v1.3.1/NOTICE",
+      "sha256": "f825d6fc2c8ee909c4bbb3e78c8ec59a923dc6738d21258913b17dc55798acad",
+      "size": 585
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_ugorji_go_codec_v1.3.1/LICENSE",
+      "sha256": "c8a84b926246b4ac76e3810722858b0f83bdea8378de49911dccbefd70b0692e",
+      "size": 1106
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_wlynxg_anet_v0.0.5/LICENSE",
+      "sha256": "6b8970dbe36fe214fd02b438c06daee19897708e435d761ecd18adc9ef7e7a05",
+      "size": 1493
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_xanzy_ssh-agent_v0.3.3/LICENSE",
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "size": 11358
+    },
+    {
+      "path": "licenses/mediamtx-modules/github.com_xo_terminfo_v0.0.0-20220910002029-abceb7e1c41e/LICENSE",
+      "sha256": "1f5f51151ba96f0492ce288bd007242f924fdad9f04002e175e951644340a891",
+      "size": 1078
+    },
+    {
+      "path": "licenses/mediamtx-modules/go.mongodb.org_mongo-driver_v2_v2.8.0/LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "size": 11357
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_crypto_v0.57.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_crypto_v0.57.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_net_v0.59.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_net_v0.59.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_sync_v0.23.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_sync_v0.23.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_sys_v0.48.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_sys_v0.48.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_term_v0.46.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_term_v0.46.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_text_v0.42.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_text_v0.42.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_time_v0.15.0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "size": 1453
+    },
+    {
+      "path": "licenses/mediamtx-modules/golang.org_x_time_v0.15.0/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/google.golang.org_protobuf_v1.36.11/LICENSE",
+      "sha256": "4835612df0098ca95f8e7d9e3bffcb02358d435dbb38057c844c99d7f725eb20",
+      "size": 1479
+    },
+    {
+      "path": "licenses/mediamtx-modules/google.golang.org_protobuf_v1.36.11/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "size": 1303
+    },
+    {
+      "path": "licenses/mediamtx-modules/gopkg.in_warnings.v0_v0.1.2/LICENSE",
+      "sha256": "986175a94c6ab7f33be5d3b5018797147a6cc740c357597fdb1ca679b72206a8",
+      "size": 1275
+    },
+    {
+      "path": "licenses/nv-codec-headers-LICENSE.txt",
+      "sha256": "3fffef7c20713d0051cb2d1436d90207055f9dbee36a31994dd90646f4f17644",
+      "size": 6414
+    },
+    {
+      "path": "licenses/toolchain-build-info.txt",
+      "sha256": "6d15780c5c63966b4df9ce9c8a2e49f17d3c373a8c6ad900a7b13b17441edd30",
+      "size": 47953
+    },
+    {
+      "path": "licenses/toolchain/gcc/COPYING.RUNTIME",
+      "sha256": "90077ba306ee9d8ed966cab1b4abd69b6e728acf08777283cc50283cd9503fa6",
+      "size": 3397
+    },
+    {
+      "path": "licenses/toolchain/gcc/COPYING3",
+      "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b",
+      "size": 35821
+    },
+    {
+      "path": "licenses/toolchain/gcc/COPYING3.LIB",
+      "sha256": "319917f5ccd09878db6f67c9a77dee846055644ca49eb535628b9e020a87261e",
+      "size": 7804
+    },
+    {
+      "path": "licenses/toolchain/mingw-w64/COPYING.MinGW-w64-runtime.txt",
+      "sha256": "e7a33fd8d164abd188ee629bbe3b07912419b29192a6bbfdce29de0ad4f0e7fb",
+      "size": 11158
+    },
+    {
+      "path": "licenses/toolchain/mingw-w64/COPYING.MinGW-w64.txt",
+      "sha256": "8b5b2c7c74842122f7a2479653dc612aa8e1c313bfec63808f90517ae13af40a",
+      "size": 6040
+    },
+    {
+      "path": "licenses/toolchain/mingw-w64/DISCLAIMER",
+      "sha256": "84db291f8e4654556fd6de6ca888d9891c414154ddc20deda82265dacf10d236",
+      "size": 2288
+    },
+    {
+      "path": "licenses/toolchain/mingw-w64/DISCLAIMER.PD",
+      "sha256": "716fee4352b35ba28ea2cec0c0d7654ca3a93966226f4eb9555e4f9b900866e3",
+      "size": 466
+    },
+    {
+      "path": "licenses/toolchain/mingw-w64/direct-x-COPYING.lib",
+      "sha256": "1e7e6bae5a5bde32f1ae5a7c37a082d1ab03cf89354f7f936ac40be9e39a6531",
+      "size": 27032
+    },
+    {
+      "path": "licenses/toolchain/winpthreads/COPYING",
+      "sha256": "1c8d23063c3772b9435831410b31b51fef3d9cf2138a442dc367ef5d72239f67",
+      "size": 2940
+    },
+    {
+      "path": "sources/FFmpeg-46d899d7a02bc63237472cc4897258d5ddf274ac.zip",
+      "sha256": "a133a3bb8317ec5357605a356df181d24a4f00347e9f7f6cbaea9f678f59d57d",
+      "size": 23134783
+    },
+    {
+      "path": "sources/collect-mediamtx-licenses.py",
+      "sha256": "eb707e742f1a1f0cb85517c6e56d9525d8a0e80df85dd672f363f6c2ad675115",
+      "size": 6733
+    },
+    {
+      "path": "sources/go-header-notices/github.com_benburkert_openpgp_v0.0.0-20160410205803-c2471f86866c.zip",
+      "sha256": "9607d644f1e542707e688eed0eb1f0b110c2a1a08794e4c5a2930da0a0f7a68f",
+      "size": 152756
+    },
+    {
+      "path": "sources/kvazaar-2b06691bb5844404c0e703f12a5d7b0fee914ec7.zip",
+      "sha256": "8d29a6e3ce99a765f98e56239f92c94f21afce5b7c160cea26098bcb4dff0076",
+      "size": 838608
+    },
+    {
+      "path": "sources/mediamtx-914e39535ece709919ac325aaeed98d394ed9093.zip",
+      "sha256": "442e4e0024951ced8b591f895b10309efc48c37af3816fa856c16c57d05697cf",
+      "size": 1047074
+    },
+    {
+      "path": "sources/minimal-pkg-config.sh",
+      "sha256": "ed6ffa56fcf82a270adb00cd8372683708436ef5a97474d2cce4712b8dae6c60",
+      "size": 1653
+    },
+    {
+      "path": "sources/nv-codec-headers-ced4f8eba3ba5dd431932cba17928f0dffdaeb2b.zip",
+      "sha256": "08cbb5b23676db26ca1cda581f0d6c37c63c43a57e3ee055ba1a45d35da3410a",
+      "size": 89376
+    },
+    {
+      "path": "sources/rebuild-ffmpeg.sh",
+      "sha256": "149fadc1e91a510df7b4a254cc934e29c9a38a83ce196645cd1d10a99633ed41",
+      "size": 2819
+    }
+  ]
+}

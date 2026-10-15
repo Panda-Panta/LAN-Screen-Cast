@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>局域网投屏 · 观看</title><link rel="stylesheet" href="viewer.css"></head>
+<body>
+  <header><a class="brand" href="/">▣ <strong>LAN Screen Cast</strong></a><span id="room-name">局域网投屏</span><span class="connection" id="connection"><i></i><span id="connection-text">准备连接</span></span></header>
+  <main>
+    <details class="invite-import"><summary>已有邀请地址？粘贴导入</summary><form id="invite-form"><label for="invite-address">完整观看邀请</label><div class="invite-row"><input id="invite-address" type="text" inputmode="url" maxlength="4096" autocomplete="off" spellcheck="false" placeholder="http://广播地址:端口/#token=…"><button id="import-invite" class="secondary" type="submit">导入邀请</button></div><p>导入后点击开始观看。邀请与观看快捷方式只对本次广播有效。</p></form></details>
+    <div id="player" class="player">
+      <video id="remote" autoplay playsinline></video>
+      <div id="overlay" class="overlay">
+        <div class="join-panel" id="join-panel"><div class="screen-mark">▣</div><h1>一起看，同一个画面。</h1><p id="join-description">连接广播电脑，实时观看屏幕或窗口。</p>
+          <div id="code-field"><label for="access-code">6 位观看码</label><input id="access-code" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" placeholder="请输入广播端显示的码"></div>
+          <label for="device-name">设备名称</label><input id="device-name" maxlength="40" placeholder="方便广播方识别此设备">
+          <button id="watch" class="primary">开始观看</button><p class="join-hint">只接收画面和声音，无需摄像头或麦克风权限。</p>
+        </div>
+        <div id="connecting-panel" class="connecting-panel" hidden><div class="spinner"></div><h2 id="connecting-message">正在连接广播电脑…</h2><p id="connect-tip">正在建立观看连接。</p><button id="cancel" class="secondary">取消连接</button></div>
+      </div>
+      <button id="enable-audio" class="enable-audio" hidden>点击播放画面与声音</button>
+    </div>
+    <div class="toolbar"><div class="stream-state"><i id="live-dot"></i><span id="stream-description">尚未开始观看</span></div><div class="playback-controls"><button id="mute" class="secondary" disabled>静音</button><button id="fullscreen" class="secondary">全屏</button><button id="disconnect" class="secondary" disabled>断开连接</button></div></div>
+    <div class="diagnostics" aria-live="polite"><ol aria-label="观看连接进度"><li id="stage-page" data-state="complete">网页已打开</li><li id="stage-auth" data-state="waiting">观看认证</li><li id="stage-media" data-state="waiting">媒体协商</li><li id="stage-frame" data-state="waiting">收到视频帧</li></ol><p id="diagnostic-note">网页已打开，点击开始观看后建立媒体连接。</p></div>
+    <div class="stats"><span>帧率 <b id="fps">—</b></span><span>接收码率 <b id="bitrate">—</b></span><span>网络往返 <b id="rtt">—</b></span><span>接收缓冲 <b id="buffer">—</b></span><span id="codec">—</span></div>
+    <p class="footnote" id="footnote">建议使用 Chrome / Edge。往返时间和接收缓冲不是完整的画面延迟。</p>
+  </main>
+  <div id="error" class="error" role="alert" hidden></div>
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>
