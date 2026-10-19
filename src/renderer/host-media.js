@@ -1,4 +1,4 @@
-import { RTC_CONFIG, preferCodec, videoStats, normalizeVideoCodec, videoCodecLabel, negotiatedVideoCodec } from '../shared/rtc.js';
+import { RTC_CONFIG, preferCodec, videoStats, normalizeVideoCodec, videoCodecLabel, negotiatedVideoCodec, withVideoBitrateBudget } from '../shared/rtc.js';
 import { advertiseCandidate, advertiseDescription } from '../shared/network.mjs';
 
 export class HostMedia {
@@ -84,7 +84,7 @@ export class HostMedia {
       if (!this.isCurrent(message.peerId, peer)) return;
       if (message.type === 'answer') {
         if (peer.pc.signalingState !== 'have-local-offer') return;
-        await peer.pc.setRemoteDescription(message.sdp);
+        await peer.pc.setRemoteDescription(withVideoBitrateBudget(message.sdp, this.config.bitrateMbps));
         if (!this.isCurrent(message.peerId, peer)) return;
         const negotiated = negotiatedVideoCodec(peer.pc.remoteDescription, peer.videoTransceiver?.mid);
         if (negotiated) this.updateCodec(message.peerId, peer, { negotiated, phase: 'negotiated' });

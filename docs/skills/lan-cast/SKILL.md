@@ -26,6 +26,10 @@ description: 在本项目修改路由器地址发现、WAN 分享及 ICE 映射�
 
 网页视频采用 `maintain-resolution`，受限时优先保留分辨率并允许降帧；`maxBitrate` / `maxFramerate` 仍为配置上限。画质回归应核对真实采集、编码及接收尺寸和实际帧率，不能用静态低流量或参数桩代替清晰度证据。具体用户说明见 [README 的带宽设置](../../../README.md#100-mbps-带宽设置)。
 
+发送端在应用 remote answer 前，通过 `withVideoBitrateBudget` 将主视频 codec 的 `x-google-start-bitrate` / `x-google-max-bitrate` 设为每台预算（SDP 单位 kbps），原更低的 max 保留；sender 的 bps 上限同时保留。不得新增 min floor、填充流量或移除反馈来追求数字。只改本地发送端应用的 answer，不能假定 offer 中的扩展会被接收方回传；保留音频、RTX / RED / FEC、profile、ICE 与 RTCP。
+
+依据 Electron 44.7.0 / Chromium 152.0.7977.130 所用 [libwebrtc 固定提交](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/media/engine/webrtc_media_engine.cc#101)：sender max 不能代替 transport 初值和探测上限。只补 start 仍可能被默认 5 Mbps 的 [初始探测上限](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/modules/congestion_controller/goog_cc/probe_controller.cc#183) 拉低；该默认值不是持续发送硬上限。升级运行库后须重验机制。用 `npm.cmd run test:video-bitrate` 同时检查静态转动态、持续动态、HEVC / H.264 / VP8 与低预算；分别核对真实候选和安装路径，统计上升不代替接收截图与编解码证据。实际网络拥塞需另做受控链路或现场验证，低预算配置测试不能冒充限速测试。
+
 RTMP 增量合同：
 
 - RTMP 与网页复用同一最终 MediaStream，合计人数受 AudienceRegistry 限制；随机 RTMP 路径不保存。控制 API / HTTP 认证仅在 loopback，发布凭据不进入 UI / 日志 / 摘要。RTMP error / stopped 立即 dispose recorder，不能停止网页或共享轨道。保持复制链接、二维码与地址导入，取消 URL 文件导出。

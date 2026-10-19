@@ -9,10 +9,11 @@
 - `src/broadcast-session.js` 管理服务器所有权与未完成退出的 retired owner；`lan-server.js` 管理 HTTP / WS 和认证，`cast-server.js` 装配网页及可选 RTMP 服务；`audience.js` 为两种协议提供唯一人数边界。服务不依赖 GUI。
 - `src/renderer/host.js` 是广播 GUI 装配入口；capture / microphone / audio-mixer / autosave / router / share / host-media 各模块独占其状态与资源，互不循环依赖。`audio-mixer.mjs` 为两种声音创建独立 gain 与单一发送音轨，资源归 CaptureSession。
 - `src/rtmp-session.js` 拥有认证、原生子进程、临时配置、发布管道及状态轮询；`rtmp-encoder.js` 实际探测 H.264 / HEVC 的硬件与软件路径，固定编码参数并向服务交还探测进程归属。`renderer/rtmp-recorder.mjs` 仅拥有录制及有界分片队列，借用最终媒体流，不停止共享轨道。
-- `src/shared/network.mjs` 是地址和候选映射纯函数；`shared/rtc.js` 是通用编码能力与统计。共享层不依赖主进程或 DOM。
+- `src/shared/network.mjs` 是地址和候选映射纯函数；`shared/rtc.js` 是通用编码能力、视频起始 / 探测预算与统计。共享层不依赖主进程或 DOM。
 - `src/viewer/viewer.js` 装配网页接收；`receiver-session.mjs` 管理连接和重试，`invitation.mjs` 解析地址导入。接收端不拥有 Node / preload 权限。
 - `tests/` 包括纯函数、状态、混音与授权、真实 UDP / HTTP 协议夹具、共享容量、服务器、录制背压和持久化回归。五类桌面脚本 smoke / gui-regressions / features-smoke / system-audio-smoke / rtmp-smoke 串行运行真实程序，使用 `.cache/` 隔离设置；后两类验证实际 Windows 输出回环、混合音频与接收解码。
 - `scripts/verify-bundle.js` 比对 ASAR 与源码；`portable-launch.js` 检查单文件启动；`package-release.py` 生成带文档与脱敏验证摘要的 ZIP 并核对 CRC / 哈希。
+- `scripts/video-bitrate-smoke.js` 串行运行真实动态窗口采集与静音接收，检查起始码率、有效载荷、帧率、尺寸和预算；保存原始统计与截图，支持源码及指定安装 EXE。
 - `scripts/media-evidence.js` 核对完整原生文件清单及实际字节；`source-fingerprint.js` 定义含原生资源的生产与验证指纹；`validate.js` 绑定 Node / 语法结果；`runtime-evidence.js` 绑定实际应用版本、候选 EXE / ASAR 和原生文件。
 - `vendor/media/` 为离线运行资源：bin 保存 FFmpeg、MediaMTX 及 DLL，licenses 保存原始许可与依赖来源，sources 保存固定源码及重建脚本，manifest 记录每项 SHA256。`scripts/fetch-media-dependencies.ps1` 固定取件、最小 LGPL 构建及校验；构建缓存仅在 `.cache/`。
 - `docs/` 保存设计、增量计划、网络说明、实际验证和项目维护 skill；这些开发文档不需要进入应用 ASAR。
@@ -67,7 +68,8 @@ The output path is always included, even when ignored, excluded, or beyond the d
 │   ├── source-fingerprint.js
 │   ├── system-audio-smoke.js
 │   ├── validate.js
-│   └── verify-bundle.js
+│   ├── verify-bundle.js
+│   └── video-bitrate-smoke.js
 ├── src/
 │   ├── renderer/
 │   │   ├── audio-mixer.mjs

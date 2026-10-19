@@ -1,5 +1,28 @@
 # 验证记录 · LAN Screen Cast
 
+## 动态码率启动预算修复（2026-10-19）
+
+延续下方保持分辨率热修复，使用真实在用 1.2.0 和隔离静音测试窗口进一步采样。首个动态样本在切换后约 1.8 秒；以下“达标耗时”若没有特别注明，从首样本起算。不能把本机回环结果当成原观众网络证据。
+
+| 受控对照 | 结果 |
+| --- | --- |
+| 原参数，HEVC，动态约 70 秒 | 初始目标 1.88 Mbps，约 27.5 秒后达 13.5 Mbps；末 20 秒约 14.99 Mbps、56.8 fps，1904×994 |
+| 原参数，H.264，动态约 40 秒 | 同样逐步从约 1.39 Mbps 升至 15 Mbps，排除 HEVC 特有持续上限 |
+| 只加 start，正式源码约 60 秒 | 虽约 60 fps，仍需约 10.2 秒接近预算，启动回归失败；保留这次反例 |
+| 原程序只加 start / max=15000 kbps | 首个动态样本目标 14.34 Mbps，20 秒有效视频均值 13.15 Mbps、60.0 fps、1904×994；静态约 0.26 Mbps |
+
+根因是只给 sender 设置编码上限，没有向 transport 同时提供起始预算和探测上限。已核对 Electron 44.7.0 → Chromium 152.0.7977.130 → libwebrtc `6f37672d358475cd17544121a12494da454d85fb`：[SDP 参数解析](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/media/engine/webrtc_media_engine.cc#101)、[默认 5 Mbps 初始探测上限](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/modules/congestion_controller/goog_cc/probe_controller.cc#183)、[probe 结果可覆盖起始估计](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/modules/congestion_controller/goog_cc/delay_based_bwe.cc#237)。本机采样与这一机制相符，未把一次 getStats 轨迹当作逐 probe 内部事件日志。
+
+修复在本地发送端应用 remote answer 时补主视频 codec 的 start / max，预算与已有 sender 上限一致，保留原更低 max；不新增 min floor 或填充数据。原生 [约束合并与钳制](https://webrtc.googlesource.com/src/+/6f37672d358475cd17544121a12494da454d85fb/call/rtp_bitrate_configurator.cc#85) 和延迟 / 丢包拥塞反馈仍保留。低预算配置测试不能替代真实受控拥塞或观众网络验证。
+
+永久回归 `npm.cmd run test:video-bitrate` 使用真实捕获与静音独立接收，保存视频有效载荷、实际帧率 / 尺寸、codec、sender 上限、BWE、脱敏视频 SDP 及候选哈希。新断言在原安装 ASAR `2115b6e4…` 上确实失败：动态 10 秒均值仅 2.48 Mbps、27.4 fps，前 5 秒目标未达预算；配置哈希不变。原始对照位于 `.cache/bitrate-diagnosis-20261019/outputs/`；正式工具的结果位于 `test-results/video-bitrate-*/`。采样窗口从真实动作时间计算，失败、关闭异常或配置变化均退出非零，测试不改写真实设置。
+
+最终门禁采用动作起首 5 秒内采样的实际视频流量，不以瞬时 target 比例判定：固定高变化图要求扣除重传后的有效视频达到配置预算 70%，同时检查编解码帧率、双方尺寸、实际 codec 及上限。HEVC / H.264 / VP8 的有效视频可达约 13–14 Mbps，但 transport 开销 / pacing 会使 target 低于 80% / 90% 的旧门槛；这些假阴性的原报告保留。最终门禁在原安装程序再次实跑失败，首窗约 9.18 Mbps、零重传，仍低于 10.5 Mbps。另保留首轮真正缓升的 2.48 Mbps 反例；未通过改写旧报告制造绿测。
+
+源码最终生产模块的真实结果：HEVC 静态转动态持续约 60 秒，13.10 Mbps、59.99 fps，首窗 12.78 Mbps；H.264 持续动态 13.01 Mbps、59.82 fps，首窗 13.33 Mbps。双方均为 1904×994，NVIDIA Media Foundation 编码。1 Mbps 高变化用例保持尺寸并降至约 4.8 fps、0.65 Mbps，上限检查通过，报告明确为 ceiling 模式，不称启动性能通过。VP8 / libvpx 发送约 14.6 Mbps、28–29 fps，最初 5 秒解码仅约 15 fps，约第 6 秒恢复 30 fps，故默认 startup 帧率门槛失败如实保留；软件兼容格式不承诺此场景首 5 秒满帧。另行真实禁用 HEVC 的回落解码通过。
+
+工作包 A / B 分别按真实输出先红后绿，新增 helper 与真实 answer 调用路径覆盖 start / max 单位、原低上限、无 min、无效输入、音频 / repair / profile / ICE / RTCP 保留及迟到会话保护。完整 Node **304/304**、**68** 项语法、结构索引与领域 skill 格式检查通过；既有 features-smoke **7/7** 通过，含真实 HEVC、接收方禁用 HEVC 后的 VP8 解码、设置保存和 WAN 夹具回归。本轮不做发声 / 系统回环测试。独立复核未见生产差异交付阻碍，工具审查发现的计时、收尾和重传指标问题已修正。
+
 ## 网页清晰度热修复（2026-10-19）
 
 用户实际运行 `D:\Tools\LAN Screen Cast\LAN Screen Cast.exe`，ASAR 内版本为 1.2.0；不是下文 Release 1.0 的整包。保存配置为 1080p / 60 fps / 15 Mbps / HEVC。用户自行关闭原广播后，使用同一程序、隔离 userData、真实测试窗口和静音独立 Electron 接收端复现；原异机观众的连接统计没有取得。

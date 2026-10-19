@@ -35,3 +35,9 @@
 候选已通过 60 / 30 fps 上限下的真实静音采集和解码尺寸检查。源修复候选 `1c3e8206d2ecd1479f680de989800d571939fb7f` 已从 `test` 验证后快进晋升 `main` 并普通推送；后续仅补交付回执。复核原哈希与占用后，已原子替换安装目录的 `resources/app.asar`，原文件备份哈希匹配。安装后 91 个文件中其余 90 个与真实配置均保持原哈希，并已从该安装路径用隔离配置完成 1904×994 动态画面编码 / 解码检查，实际约 31.3 fps、2.83 Mbps，测试程序已退出。
 
 原 ASAR 备份及差异清单在 `.cache/quality-diagnosis-20261019/candidate.json` 指向的位置，修复 ASAR 保留于 `artifacts/quality-fix-app.asar`，清理重复候选 runtime 和五个测试配置。此项是现有 1.2.0 的本机单模块热修复，元数据版本保留；不创建或覆盖 Release 资产。原观众网络与主观清晰度尚待复播确认。
+
+## 动态码率启动预算热修复（2026-10-19）
+
+延续同一在用 1.2.0，仅更新 `src/renderer/host-media.js` 与 `src/shared/rtc.js`：配置的网页每台码率同时提供给本地发送端的起始带宽和 transport 探测上限，保留 sender 上限及原更低协商上限。基线为上一轮已安装的 ASAR `2115b6e4f9e299928d4a3b5e42c54d42fcd2dd26edbd78f04f056e7faf56973c`；279 文件内容和条目属性逐项比对，其余 277 文件、包版本、EXE / DLL 均不变。候选 SHA256 为 `c57d2010e3934d4fe2cea2aabde4fd9a0752429a3adde6e1a007945944c5ce2a`，两个模块与已验收源码字节一致。
+
+候选在独立 runtime 实际采集和解码 1904×994，动态约 13.16 Mbps、59.97 fps，前 5 秒采样窗约 12.62 Mbps，默认 startup 回归通过，真实配置哈希保持。源码和候选的证据及帧率边界见 [验证记录首节](verification.md#动态码率启动预算修复2026-10-19)。候选与原 ASAR 备份、全安装目录清单在 `.cache/bitrate-diagnosis-20261019/candidate.json`；正式安装需在晋升后再次核对进程、原文件和配置哈希，仅原子替换 ASAR，再从真实安装路径复测。当前安装回执待补，不创建或修改 GitHub Release 附件。

@@ -65,6 +65,8 @@ UDP 的外部与内部端口必须一一相同。修改软件 UDP 范围后，�
 
 所选分辨率、帧率和每台码率都是上限，实际流量随静态 / 动态画面、网络和编码器调整。静态画面所需流量较低，显示 **0.2 Mbps 本身不代表清晰度故障**。
 
+网页连接会将每台码率同时用于起始带宽预算，避免动态画面从过低的估计缓慢升速；遇到网络拥塞仍会自动降速，不保证一直占满设置的码率。
+
 网页观看在网络或编码能力受限时优先保持分辨率，允许帧率下降，因此选择 **60 fps 不保证持续达到 60 fps**。若画面模糊，可查看观看页底部显示的**实际分辨率和帧率**，并比较静态文字与动态画面的表现。
 
 - 演示文稿、办公软件：1080p、30 fps、4–6 Mbps。
@@ -115,6 +117,7 @@ npm.cmd run check
 npm.cmd run test:smoke
 npm.cmd run test:gui
 npm.cmd run test:features
+npm.cmd run test:video-bitrate
 npm.cmd run test:system-audio
 npm.cmd run test:rtmp
 npm.cmd run build:dir
@@ -131,6 +134,8 @@ node node_modules\electron\install.js
 `LAN_CAST_DATA_DIR` 可指定配置与 Chromium 会话目录，方便在测试中隔离数据。`scripts/smoke.js` 启动生产桌面端及独立浏览器会话，测试真实画面采集与 WebRTC 解码；音频传输使用测试信号，另外探测实际麦克风。`scripts/gui-regressions.js` 验证原生窗口关闭、取消准备、重载、恢复、移除和导入。`scripts/features-smoke.js` 验证 1.1 的保存 / 重启、麦克风刷新、真实 HEVC 编解码和协商回落；WAN 响应采用测试夹具，不代表校园网穿透。HEVC 检查要求测试机提供相应编码和解码能力。测试文件和截图在 `test-results/`。测试需要普通交互式 Windows 会话，开发沙箱中的 AppContainer 权限可能阻止 Electron 的子进程运行。
 
 `scripts/system-audio-smoke.js` 在普通 Windows 会话中短暂播放低音量 440 Hz 测试音，通过原生输出回环和 WebRTC 接收频谱验证声音；混合测试只将麦克风输入替换为另一频率。接收测试窗口的本机输出静音，避免反馈；还验证独立音量、麦克风静音、停止释放及关闭后恢复。
+
+`scripts/video-bitrate-smoke.js` 使用真实滚动文字 / 棋盘窗口和独立静音接收端，默认检查 1080p60、15 Mbps 的静态转动态：切换动态起前 5 秒的有效视频流量达到预算 70%，同时检查编解码帧率、尺寸和上限；目标码率与带宽估计作为诊断，避免误拒绝已经实际满帧发送的编码器，保存原始统计及截图。设置 `LAN_CAST_EXECUTABLE` 可测试实际安装 EXE；`LAN_CAST_BITRATE_CODEC` 支持 HEVC / H264 / VP8，`LAN_CAST_BITRATE_SAMPLES` 控制动态采样数（默认 21），`LAN_CAST_BITRATE_MOTION_FROM_START=1` 改为持续动态。`LAN_CAST_BITRATE_MBPS` 可验证较低预算；高变化的低码率用例显式设置 `LAN_CAST_BITRATE_MIN_FPS` 和 `LAN_CAST_BITRATE_CEILING_ONLY=1`，只要求有真实出帧、保尺寸和遵守上限，允许降帧及低于预算；报告单列 ceiling，不冒充启动性能通过。测试自动隔离并清理自己的配置，核对真实配置哈希；本机回环不能证明实际观众网络带宽。
 
 测试输出信号幅度已降低 100 倍，仅采样时播放，每段最多 15–20 秒自动静音；基础测试接收窗口也禁止本机播放。Release 1.0 本轮音频复验已停止，发布摘要明确记录未完成范围，当前验收与历史证据分开列在 [验证记录](docs/verification.md)。
 
@@ -150,7 +155,7 @@ RTMP 使用随包 FFmpeg 与 MediaMTX，无需用户安装命令行工具。原�
 - `src/renderer/`：广播 GUI、采集、逐接收端 WebRTC 编码传输。
 - `src/renderer/audio-mixer.mjs`：会话拥有的系统声音 / 麦克风混合、独立音量与麦克风静音。
 - `src/viewer/`：网页加入、解码播放、重连、音量与统计。
-- `src/shared/rtc.js`：编解码偏好、低延迟提示和媒体统计。
+- `src/shared/rtc.js`：编解码偏好、视频起始及探测预算、低延迟提示和媒体统计。
 - `src/shared/network.mjs`：本地 / WAN 地址与同端口 ICE 映射。
 - `src/cast-server.js`：装配网页和可选 RTMP 服务；`audience.js`：跨协议共享人数限制。
 - `src/rtmp-session.js`：原生服务、认证、受限分片、监测与退出；`rtmp-encoder.js`：真实硬件 / 软件编码探测；`renderer/rtmp-recorder.mjs`：有界顺序录制队列。

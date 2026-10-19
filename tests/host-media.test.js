@@ -14,7 +14,7 @@ function harness(plans = [], options = {}) {
     constructor() {
       this.plan = plans.shift() || {};
       this.connectionState = 'new'; this.signalingState = 'stable'; this.remoteDescription = null;
-      this.localCalls = 0; this.iceCalls = []; this.closed = false; this.senderParameters = new Map();
+      this.localCalls = 0; this.remoteCalls = []; this.iceCalls = []; this.closed = false; this.senderParameters = new Map();
       pcs.push(this);
     }
     addTransceiver(track) {
@@ -30,7 +30,7 @@ function harness(plans = [], options = {}) {
       this.signalingState = 'have-local-offer';
       this.localDescription = { toJSON: () => ({ ...description }) };
     }
-    async setRemoteDescription(description) { await this.plan.answer; this.remoteDescription = description; this.signalingState = 'stable'; }
+    async setRemoteDescription(description) { this.remoteCalls.push(description); await this.plan.answer; this.remoteDescription = description; this.signalingState = 'stable'; }
     async addIceCandidate(candidate) { this.iceCalls.push(candidate); if (this.closed) throw new Error('closed'); }
     getStats() { return this.plan.stats || Promise.resolve(new Map([
       ['codec', { id: 'codec', type: 'codec', mimeType: 'video/H264' }],
@@ -72,6 +72,50 @@ for (const { fps, bitrateMbps, maxBitrate } of [
     assert.deepEqual(pcs[0].senderParameters.get('video'), {
       encodings: [{ maxBitrate, maxFramerate: fps }], degradationPreference: 'maintain-resolution'
     });
+  } finally { media.stop(); }
+});
+
+for (const { bitrateMbps, budgetKbps } of [
+  { bitrateMbps: 6, budgetKbps: 6000 },
+  { bitrateMbps: 15, budgetKbps: 15000 },
+]) test(`an answer applies the ${bitrateMbps} Mbps start and maximum video budget without altering other negotiation data`, async () => {
+  const { media, pcs } = harness([], { bitrateMbps, codec: 'HEVC', audio: true });
+  const originalLines = [
+    'v=0', 'o=- 1 1 IN IP4 127.0.0.1', 's=-', 't=0 0', 'a=group:BUNDLE audio 0',
+    'm=audio 9 UDP/TLS/RTP/SAVPF 111', 'a=mid:audio', 'a=recvonly',
+    'a=rtpmap:111 opus/48000/2', 'a=fmtp:111 minptime=10;useinbandfec=1', 'a=rtcp-mux',
+    'm=video 9 UDP/TLS/RTP/SAVPF 112 113 114 115', 'a=mid:0', 'a=recvonly',
+    'a=ice-ufrag:receiver', 'a=ice-pwd:fixed-test-only-password',
+    'a=fingerprint:sha-256 AA:BB:CC:DD', 'a=setup:active', 'a=rtcp-mux', 'a=rtcp-rsize',
+    'a=rtpmap:112 H265/90000', 'a=fmtp:112 profile-id=1;tier-flag=0;level-id=123',
+    'a=rtcp-fb:112 transport-cc', 'a=rtcp-fb:112 nack', 'a=rtcp-fb:112 nack pli',
+    'a=rtpmap:113 rtx/90000', 'a=fmtp:113 apt=112',
+    'a=rtpmap:114 red/90000', 'a=rtpmap:115 ulpfec/90000',
+    'a=candidate:1 1 udp 2122260223 192.0.2.1 50000 typ host', 'a=end-of-candidates', ''
+  ];
+  const description = Object.freeze({ type: 'answer', sdp: originalLines.join('\r\n') });
+  const candidate = Object.freeze({ candidate: 'candidate:2 1 udp 2122260223 192.0.2.2 50001 typ host', sdpMid: '0', sdpMLineIndex: 1 });
+  try {
+    await media.add('viewer');
+    const generation = media.peers.get('viewer').generation;
+    const message = Object.freeze({ type: 'answer', peerId: 'viewer', generation, sdp: description });
+    await media.signal({ type: 'candidate', peerId: 'viewer', generation, candidate });
+    await media.signal(message);
+    assert.equal(pcs[0].remoteCalls.length, 1);
+    const applied = pcs[0].remoteCalls[0];
+    assert.equal(applied.type, 'answer');
+    const appliedLines = applied.sdp.split('\r\n');
+    const originalFmtp = 'a=fmtp:112 profile-id=1;tier-flag=0;level-id=123';
+    const appliedFmtp = appliedLines.find(line => line.startsWith('a=fmtp:112 '));
+    assert.ok(appliedFmtp.startsWith(`${originalFmtp};`));
+    assert.deepEqual(appliedFmtp.slice(originalFmtp.length + 1).split(';').map(field => field.trim()).sort(),
+      [`x-google-max-bitrate=${budgetKbps}`, `x-google-start-bitrate=${budgetKbps}`]);
+    assert.deepEqual(appliedLines.filter(line => !line.startsWith('a=fmtp:112 ')),
+      originalLines.filter(line => !line.startsWith('a=fmtp:112 ')));
+    assert.notEqual(applied, description);
+    assert.equal(message.sdp, description);
+    assert.equal(description.sdp, originalLines.join('\r\n'));
+    assert.deepEqual(pcs[0].iceCalls, [candidate]);
   } finally { media.stop(); }
 });
 

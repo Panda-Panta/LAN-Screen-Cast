@@ -10,6 +10,7 @@
     "test": "node --test tests/*.test.js",
     "test:smoke": "node scripts/smoke.js",
     "test:gui": "node scripts/gui-regressions.js",
+    "test:video-bitrate": "node scripts/video-bitrate-smoke.js",
     "test:features": "node scripts/features-smoke.js",
     "test:system-audio": "node scripts/system-audio-smoke.js",
     "build:dir": "electron-builder --win --x64 --dir",

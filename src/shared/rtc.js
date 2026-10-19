@@ -85,6 +85,63 @@ export function negotiatedVideoCodec(description, mid = null) {
   return '';
 }
 
+// The remote answer feeds sender BWE: seed its start and bound transport probing.
+// The sender's encoding maxBitrate remains separate; no minimum is introduced.
+export function withVideoBitrateBudget(description, bitrateMbps) {
+  if (description?.type !== 'answer' || typeof description.sdp !== 'string' ||
+      !Number.isInteger(bitrateMbps) || bitrateMbps < 1 || bitrateMbps > 30) return description;
+  const sections = description.sdp.split(/(?=^m=)/m);
+  const directionPattern = /^a=(sendrecv|sendonly|recvonly|inactive)[ \t]*\r?$/im;
+  const sessionDirection = sections[0].startsWith('m=') ? null : directionPattern.exec(sections[0])?.[1].toLowerCase();
+  const defaultNewline = description.sdp.match(/\r?\n/)?.[0] || '\r\n';
+  const bitrateKbps = bitrateMbps * 1000;
+  const hints = { start: `x-google-start-bitrate=${bitrateKbps}`, max: `x-google-max-bitrate=${bitrateKbps}` };
+  const hint = `${hints.start};${hints.max}`;
+  const rtpmapPattern = /^a=rtpmap:(\d+)[ \t]+(?:H265|H264|VP8|VP9|AV1)\/\d+[ \t]*$/i;
+  const fmtpPattern = /^(a=fmtp:(\d+)[ \t]+)(.*)$/i;
+  const sdp = sections.map(section => {
+    const lines = section.split(/(\r?\n)/);
+    const [kind, port, protocol, ...payloads] = lines[0].trim().split(/\s+/);
+    const portMatch = /^(\d+)(?:\/[1-9]\d*)?$/.exec(port || '');
+    if (kind !== 'm=video' || !portMatch || Number(portMatch[1]) < 1 || Number(portMatch[1]) > 65535 ||
+        !/(?:^|\/)RTP(?:\/|$)/i.test(protocol || '') || !payloads.length ||
+        payloads.some(payload => !/^\d+$/.test(payload) || Number(payload) > 127)) return section;
+    const direction = directionPattern.exec(section)?.[1].toLowerCase() || sessionDirection;
+    if (direction === 'inactive') return section;
+    const declared = new Set(payloads), primary = new Set(), formatted = new Set();
+    for (const line of lines) {
+      const codec = rtpmapPattern.exec(line), format = fmtpPattern.exec(line);
+      if (codec && declared.has(codec[1])) primary.add(codec[1]);
+      if (format) formatted.add(format[2]);
+    }
+    return lines.map((line, index) => {
+      const format = fmtpPattern.exec(line);
+      if (format && primary.has(format[2])) {
+        const missing = new Set(['start', 'max']);
+        const params = format[3].split(';').map(field => field.replace(
+          /^([ \t]*x-google-(start|max)-bitrate[ \t]*=[ \t]*)(.*?)([ \t]*)$/i,
+          (_match, prefix, kind, value, trailing) => {
+            const name = kind.toLowerCase();
+            missing.delete(name);
+            const maximum = name === 'max' && /^\d+$/.test(value) ? Number(value) : NaN;
+            const rate = Number.isInteger(maximum) && maximum > 0 ? Math.min(maximum, bitrateKbps) : bitrateKbps;
+            return `${prefix}${rate}${trailing}`;
+          }
+        )).join(';');
+        const addition = [...missing].map(name => hints[name]).join(';');
+        return format[1] + (addition ? `${params}${params && !params.endsWith(';') ? ';' : ''}${addition}` : params);
+      }
+      const codec = rtpmapPattern.exec(line);
+      if (codec && primary.has(codec[1]) && !formatted.has(codec[1])) {
+        formatted.add(codec[1]);
+        return `${line}${lines[index + 1] || defaultNewline}a=fmtp:${codec[1]} ${hint}`;
+      }
+      return line;
+    }).join('');
+  }).join('');
+  return sdp === description.sdp ? description : { ...description, type: description.type, sdp };
+}
+
 export function lowLatency(receiver) {
   try {
     if ('jitterBufferTarget' in receiver) receiver.jitterBufferTarget = 0;
