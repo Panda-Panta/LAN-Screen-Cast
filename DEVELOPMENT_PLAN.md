@@ -22,7 +22,8 @@
 - 验收：实际输入、编码及接收帧率/尺寸、媒体有效载荷速率、目标与带宽估计必须对应；长时动态及静态转动态均验证，保留配置上限和低预算连接的退让。源码与安装候选分别验证，真实用户配置与无关程序文件保持哈希。原观众网络未接入时明确保留边界。
 - 已定位：保持分辨率后的原程序持续动态最终可达 15 Mbps，但从首采样起约 27.5 秒才达配置的 90%；HEVC / H.264 均缓升，输入约 60 fps、编码耗时约 6 ms，排除持续编码上限。固定 libwebrtc 源码表明 sender max 不设置 transport 初值；只补 start 的首轮对照很快，正式源码长测却仍需约 10 秒，不能以单次成功验收。起始探测默认上限 5 Mbps，探测结果可回写较低估计；补同预算 max 的单变量对照首采样目标 14.34 Mbps、实际约 60 fps，静态仍约 0.26 Mbps。此默认探测值并非永久带宽上限。
 - 最小方案与分工：A 独占 shared/rtc.js 与 codec 单测，实现纯函数 withVideoBitrateBudget；B 独占 host-media.js 与其单测，只在既有 generation / signaling 保护内应用本地 remote answer。主视频补 start / max（kbps），原更低 max 及音频 / repair / profile / ICE / RTCP 保留，不新增 min。主 agent 独占真实测试、新 scripts/video-bitrate-smoke.js、文档和安装。A / B 的红绿及独立审查完成，304 项 Node、68 项语法、结构及 skill 检查通过；源码一分钟 HEVC 约 13.10 Mbps / 60 fps，H.264、低预算上限及 7 项既有功能回归完成。
-- 候选验收：旧版 1.2.0 ASAR 279 文件仅 host-media.js / shared/rtc.js 改动，原低带宽探测候选基线为已安装 2115b6e4…；其余内容、条目属性及版本保持。新候选 c57d2010… 的实际启动通过最终默认 startup 门禁：静态约 0.26 Mbps，动态约 13.16 Mbps / 59.97 fps、1904×994，首窗约 12.62 Mbps。永久工具按首 5 秒内扣除重传后的真实视频流量与帧率 / 尺寸 / 上限验收，已在原安装程序实跑红；不以瞬时 target 数字取代发送效果。VP8 软件解码早期出帧边界与工具旧门槛的失败均原样记录，未宣称全编码首秒满帧；低预算仅称 ceiling 检查通过。当前待候选晋升与安装后验证；详细结果见验证记录首节。
+- 候选验收：旧版 1.2.0 ASAR 279 文件仅 host-media.js / shared/rtc.js 改动，原低带宽探测候选基线为已安装 2115b6e4…；其余内容、条目属性及版本保持。新候选 c57d2010… 的实际启动通过最终默认 startup 门禁：静态约 0.26 Mbps，动态约 13.16 Mbps / 59.97 fps、1904×994，首窗约 12.62 Mbps。永久工具按首 5 秒内扣除重传后的真实视频流量与帧率 / 尺寸 / 上限验收，已在原安装程序实跑红；不以瞬时 target 数字取代发送效果。VP8 软件解码早期出帧边界与工具旧门槛的失败均原样记录，未宣称全编码首秒满帧；低预算仅称 ceiling 检查通过。
+- 本轮交付完成：源候选 8bdda517b21088b0f158c8747a1fc9a66637b833 从 test 普通推送、快进 main 后，核对旧版两个模块与该提交逐字节一致并原子安装 ASAR。实际 D:\Tools\LAN Screen Cast\LAN Screen Cast.exe 复测通过：静态约 0.26 Mbps，动态约 13.13 Mbps / 60.02 fps，双方 1904×994，首窗约 12.72 Mbps；程序已退出。91 个安装文件中其余 90 个、真实设置与原 ASAR 备份哈希不变；保留 c57d2010… 热修复制品和 2115b6e4… 回退，清理重复 runtime、解包输入和五个隔离配置。后续提交只补回执，不重建相同生产字节；未改 Release 资产。详细结果见验证记录首节，原观众网络效果仍需复播确认。
 
 - [产品架构与基础合同](docs/superpowers/specs/2026-10-12-lan-cast-design.md)
 - [1.0 基础实施及验收](docs/superpowers/plans/2026-10-12-lan-cast.md)
@@ -34,7 +35,7 @@
 - [运行与网络说明](README.md)、[验证记录](docs/verification.md)、[交付配置](docs/delivery.md)
 - [跨模块维护规则](docs/skills/lan-cast/SKILL.md)：修改路由器发现、持久化、采集生命周期或编码协商时读取。
 
-本目录已建立 Git main，确认的远端为 https://github.com/Panda-Panta/LAN-Screen-Cast；交付目标为项目内 `release/` 和 GitHub Release 1.0，未配置额外安装目录。共享目录按文件所有权开发，由主 agent 统一集成、桌面运行检查和发布。
+本目录使用 Git main / test，确认的远端为 https://github.com/Panda-Panta/LAN-Screen-Cast。现有在用目录为 `D:\Tools\LAN Screen Cast`，1.2.0 窄范围热修复与历史 Release 1.0 分别记录在 [交付配置](docs/delivery.md)。共享目录按文件所有权开发，由主 agent 统一集成、桌面运行检查和发布。
 
 最近全项目结构审查：2026-10-13，1.3 里程碑；显示授权、音频混合、共享观看容量、原生 RTMP 服务、编码探测及录制分片各有独立模块，装配只在 main / host，未引入循环依赖。检查模块入口、取消与资源所有权、打包白名单、原生依赖清单和文档引用，验证与结论在增量计划登记。
 
