@@ -14,10 +14,15 @@ function harness(plans = [], options = {}) {
     constructor() {
       this.plan = plans.shift() || {};
       this.connectionState = 'new'; this.signalingState = 'stable'; this.remoteDescription = null;
-      this.localCalls = 0; this.iceCalls = []; this.closed = false;
+      this.localCalls = 0; this.iceCalls = []; this.closed = false; this.senderParameters = new Map();
       pcs.push(this);
     }
-    addTransceiver() { return { mid: '0', setCodecPreferences: codecs => { this.codecPreferences = codecs; }, sender: { getParameters: () => ({ encodings: [{}] }), setParameters: async () => {} } }; }
+    addTransceiver(track) {
+      return { mid: '0', setCodecPreferences: codecs => { this.codecPreferences = codecs; }, sender: {
+        getParameters: () => ({ encodings: [{}] }),
+        setParameters: async params => { this.senderParameters.set(track.kind, structuredClone(params)); }
+      } };
+    }
     createOffer() { return this.plan.offer || Promise.resolve({ type: 'offer', sdp: 'v=0\r\n' }); }
     async setLocalDescription(description) {
       this.localCalls++;
@@ -51,9 +56,24 @@ function harness(plans = [], options = {}) {
     + '\nglobalThis.Media = HostMedia;';
   vm.runInContext(source, context, { filename: 'host-media.js' });
   const video = { kind: 'video', stop() {} };
-  const media = new context.Media({ getTracks: () => [video], getAudioTracks: () => [] }, { bitrateMbps: 6, fps: 30, codec: options.codec || 'auto' }, async (id, message) => messages.push({ id, ...message }), (id, state, message, codec) => states.push({ id, state, message, codec }));
+  const audio = options.audio ? [{ kind: 'audio', stop() {} }] : [];
+  const media = new context.Media({ getTracks: () => [video, ...audio], getAudioTracks: () => audio }, { bitrateMbps: options.bitrateMbps ?? 6, fps: options.fps ?? 30, codec: options.codec || 'auto' }, async (id, message) => messages.push({ id, ...message }), (id, state, message, codec) => states.push({ id, state, message, codec }));
   return { media, pcs, messages, states, timers };
 }
+
+for (const { fps, bitrateMbps, maxBitrate } of [
+  { fps: 30, bitrateMbps: 6, maxBitrate: 6000000 },
+  { fps: 60, bitrateMbps: 15, maxBitrate: 15000000 },
+]) test(`sender setup preserves resolution with ${fps} fps and ${bitrateMbps} Mbps ceilings`, async () => {
+  const { media, pcs } = harness([], { fps, bitrateMbps, audio: true });
+  try {
+    await media.add('viewer');
+    assert.deepEqual(pcs[0].senderParameters.get('audio'), { encodings: [{ maxBitrate: 96000 }] });
+    assert.deepEqual(pcs[0].senderParameters.get('video'), {
+      encodings: [{ maxBitrate, maxFramerate: fps }], degradationPreference: 'maintain-resolution'
+    });
+  } finally { media.stop(); }
+});
 
 test('a removed peer cannot apply a late offer to a closed connection', async () => {
   const offer = deferred();

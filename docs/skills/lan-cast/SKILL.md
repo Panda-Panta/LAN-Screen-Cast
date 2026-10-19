@@ -24,6 +24,8 @@ description: 在本项目修改路由器地址发现、WAN 分享及 ICE 映射�
 
 ## 实施与验证
 
+网页视频采用 `maintain-resolution`，受限时优先保留分辨率并允许降帧；`maxBitrate` / `maxFramerate` 仍为配置上限。画质回归应核对真实采集、编码及接收尺寸和实际帧率，不能用静态低流量或参数桩代替清晰度证据。具体用户说明见 [README 的带宽设置](../../../README.md#100-mbps-带宽设置)。
+
 RTMP 增量合同：
 
 - RTMP 与网页复用同一最终 MediaStream，合计人数受 AudienceRegistry 限制；随机 RTMP 路径不保存。控制 API / HTTP 认证仅在 loopback，发布凭据不进入 UI / 日志 / 摘要。RTMP error / stopped 立即 dispose recorder，不能停止网页或共享轨道。保持复制链接、二维码与地址导入，取消 URL 文件导出。

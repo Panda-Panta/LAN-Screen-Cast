@@ -56,7 +56,7 @@ export class HostMedia {
         params.encodings[0].maxBitrate = track.kind === 'video' ? this.config.bitrateMbps * 1000000 : 96000;
         if (track.kind === 'video') {
           params.encodings[0].maxFramerate = this.config.fps;
-          params.degradationPreference = 'maintain-framerate';
+          params.degradationPreference = 'maintain-resolution';
         }
         await transceiver.sender.setParameters(params);
       }
